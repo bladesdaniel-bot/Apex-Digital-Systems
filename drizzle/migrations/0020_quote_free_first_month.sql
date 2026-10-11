@@ -1,0 +1,1 @@
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS membership_free_month boolean NOT NULL DEFAULT false;

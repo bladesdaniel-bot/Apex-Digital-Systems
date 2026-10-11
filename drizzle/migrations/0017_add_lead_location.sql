@@ -1,0 +1,7 @@
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS ip_address text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS city text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS region text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT '';
+
+GRANT ALL ON public.leads TO service_role;

@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local environment variables (keep secrets and personal info out of git)
+.env
+.env.*
+!.env.example
+
+# Private owner/admin login pages - kept on this computer, never pushed to GitHub
+src/routes/admin.login.tsx
+src/routes/auth.tsx
+src/routes/_authenticated/team.admin.tsx
+# Auto-generated route list (it names the private pages); rebuilt automatically on dev/build
+src/routeTree.gen.ts

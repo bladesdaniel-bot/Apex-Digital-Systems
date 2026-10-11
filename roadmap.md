@@ -1,0 +1,21 @@
+# Roadmap
+- [x] Crop the uploaded app animation and add a clickable home-page preview linking to /apps
+- [x] Add a separate public apps showcase with the uploaded demo video
+- [x] Build orders: created after first payment, owner email alert, Admin Build Orders view with status
+- [x] Order photos: caller, customer (pay page), and admin uploads
+- [x] $0 quotes: allow confirming without a card payment, still creates the build order
+- [x] Order photos up to 100 MB (bucket, server check, payment page copy)
+- [x] Put the Apex Digital Systems flyer on the home page with a download link
+- [x] Swap flyer for the moving version with clickable buttons
+- [x] Add Custom App Design & Build to the services grid, pricing cards, form checkboxes, AI briefs and quote builder
+- [ ] Publish to apexdigitalsystems.org — awaiting explicit publish request
+- [x] Check and remove recorded playback controls from all three home-page ads
+- [x] Restrict Terminal to approved team members and admins
+- [x] Billing audit fixes: emailed Manage Billing link, auto-charged split payments, refund flags, renewal commissions linked, verified thank-you page, removed old public checkout
+- [x] Cancellation request form + owner review queue
+- [x] Website Launch & Redesign price drop: $1,200 → $1,000 everywhere in the app
+- [x] Restore the 1099-NEC report card and the W-9 requirement switch
+- [x] Let the owner actually save the W-9 switch (settings table was read-only for the team)
+- [x] Replace the home-page price-board ad so it shows $1,000, not the baked-in $1,200
+- [x] Flyer corrected: $1,000 prices, Custom Apps card replacing social media, lighter image for the page
+- [ ] Abstract the demo website video for demonstrations, place it on the site with "this could be yours" messaging, and change the phone number shown so it doesn't reach a real estimate line

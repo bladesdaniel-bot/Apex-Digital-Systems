@@ -1,0 +1,2 @@
+ALTER TABLE public.commissions ADD COLUMN IF NOT EXISTS quote_id uuid REFERENCES public.quotes(id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS commissions_quote_sale_uniq ON public.commissions(quote_id) WHERE quote_id IS NOT NULL AND kind = 'sale';
