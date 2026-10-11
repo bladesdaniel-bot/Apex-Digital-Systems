@@ -80,9 +80,12 @@ src/
 │   ├── _authenticated/   # Team portal (role-protected)
 │   └── api/public/       # Webhooks and scheduled jobs
 └── test/              # Vitest unit tests
+docs/                  # Documentation (full directory tree)
 drizzle/migrations/    # Database schema history (SQL)
 public/                # Static assets
 ```
+
+For the complete file-by-file layout, see [docs/DIRECTORY_TREE.md](docs/DIRECTORY_TREE.md).
 
 > **Note:** The owner/admin sign-in pages are intentionally left out of this public repository for security.
 
