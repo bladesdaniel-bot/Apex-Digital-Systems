@@ -129,9 +129,6 @@ Real values are never committed. `.env` is ignored by git.
 
 **Daniel Blades**, Software Engineer / Systems Architect
 
-- GitHub: [@bladesdaniel-bot](https://github.com/bladesdaniel-bot)
-- LinkedIn: [daniel-blades](https://www.linkedin.com/in/daniel-blades-45bb68148)
-- Portfolio: [seablade.itch.io](https://seablade.itch.io)
 
 ---
 
