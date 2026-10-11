@@ -42,3 +42,6 @@ src/routes/auth.tsx
 src/routes/_authenticated/team.admin.tsx
 # Auto-generated route list (it names the private pages); rebuilt automatically on dev/build
 src/routeTree.gen.ts
+
+# Copies saved by the Claude desktop app
+Claude outputs/
