@@ -2,13 +2,12 @@
 
 Full file layout of the Apex Digital Systems repository.
 
-Back to the [README](../README.md).
+Back to the [README](README.md).
 
 ## Folder Guide
 
 | Folder | What's inside |
 |---|---|
-| `docs/` | Project documentation, including this file |
 | `drizzle/migrations/` | SQL migrations, the full history of the database schema |
 | `public/` | Static files served as-is (flyer, team manual, favicon, robots.txt) |
 | `src/assets/` | Images, plus pointer files for videos hosted on a CDN |
@@ -33,8 +32,6 @@ Back to the [README](../README.md).
 Apex-Digital-Systems/
 ├── .lovable/
 │   └── project.json
-├── docs/
-│   └── DIRECTORY_TREE.md
 ├── drizzle/
 │   ├── migrations/
 │   │   ├── meta/
@@ -349,6 +346,7 @@ Apex-Digital-Systems/
 ├── bun.lock
 ├── bunfig.toml
 ├── components.json
+├── DIRECTORY_TREE.md
 ├── drizzle.config.ts
 ├── eslint.config.js
 ├── package.json
