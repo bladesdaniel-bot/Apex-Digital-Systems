@@ -4,6 +4,7 @@ import { template as teamInviteCodeTemplate } from './team-invite-code'
 import { template as buildOrderTemplate } from './build-order'
 import { template as teamAlertTemplate } from './team-alert'
 import { template as billingLinkTemplate } from './billing-link'
+import { template as clientInviteTemplate } from './client-invite'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -28,4 +29,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'build-order': buildOrderTemplate,
   'team-alert': teamAlertTemplate,
   'billing-link': billingLinkTemplate,
+  'client-invite': clientInviteTemplate,
 }

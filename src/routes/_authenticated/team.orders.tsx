@@ -1,12 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TeamShell } from "@/components/TeamShell";
-import { PhotoUpload } from "@/components/PhotoUpload";
+import { PhotoUpload, isPdfFile } from "@/components/PhotoUpload";
 import { getMyAccess } from "@/lib/team.functions";
-import { BUILD_STATUSES, chargeNextPaymentNow, deleteOrderPhoto, enterOrderSale, listBuildOrders, updateBuildOrder, uploadOrderPhotoTeam, type BuildOrder, type BuildStatus } from "@/lib/orders.functions";
+import { OrderEditor } from "@/components/OrderEditor";
+import { OrderClientSection } from "@/components/OrderClientSection";
+import { BUILD_STATUSES, chargeNextPaymentNow, deleteBuildOrder, deleteOrderPhoto, enterOrderSale, listBuildOrders, markOrderReady, updateBuildOrder, uploadOrderPhotoTeam, type BuildOrder, type BuildStatus } from "@/lib/orders.functions";
 import { quoteTotals, usd } from "@/lib/quote";
 import { ptDate, ptTime } from "@/lib/visit-format";
 import { addressMapsUrl } from "@/lib/geo";
@@ -27,7 +29,12 @@ export const Route = createFileRoute("/_authenticated/team/orders")({
   component: OrdersPage,
 });
 
-const LABEL: Record<BuildStatus, string> = { new: "New", in_progress: "In progress", delivered: "Delivered" };
+const LABEL: Record<BuildStatus, string> = { on_hold: "Holding area", new: "New", in_progress: "In progress", delivered: "Delivered" };
+
+type Filter = "ready" | "on_hold" | "delivered" | "all";
+const FILTERS: Filter[] = ["ready", "on_hold", "delivered", "all"];
+const FILTER_LABEL: Record<Filter, string> = { ready: "Ready to build", on_hold: "Holding area", delivered: "Delivered", all: "All" };
+const inFilter = (o: BuildOrder, f: Filter) => f === "all" ? true : f === "ready" ? o.build_status === "new" || o.build_status === "in_progress" : o.build_status === f;
 
 function OrdersPage() {
   const access = useServerFn(getMyAccess);
@@ -35,34 +42,43 @@ function OrdersPage() {
   const role = me.data?.role;
   const allowed = role === "admin" || role === "telemarketer";
   const list = useServerFn(listBuildOrders);
-  const orders = useQuery({ queryKey: ["build-orders"], queryFn: () => list(), enabled: allowed, refetchInterval: 60_000 });
-  const [filter, setFilter] = useState<BuildStatus | "all">("all");
-  const shown = (orders.data ?? []).filter(o => filter === "all" || o.build_status === filter);
+  const orders = useQuery({ queryKey: ["build-orders"], queryFn: () => list(), enabled: allowed, refetchInterval: 20_000 });
+  const [filter, setFilter] = useState<Filter>("ready");
+  const flagged = (orders.data ?? []).filter(o => o.update_needed_at);
+  const shown = (orders.data ?? []).filter(o => inFilter(o, filter)).sort((a, b) => Number(!!b.update_needed_at) - Number(!!a.update_needed_at));
   return (
     <TeamShell isAdmin={role === "admin"}>
       <h1 className="font-display text-4xl font-medium">Build <span className="gradient-text">orders</span></h1>
-      <p className="mt-2 text-sm text-muted-foreground">Sales show up here as soon as the first payment clears (or a $0 order is confirmed).</p>
+      <p className="mt-2 text-sm text-muted-foreground">"Ready to build" shows only orders that are 100% ready. Orders waiting on the customer sit in the Holding area until someone marks them ready. Payment links that aren't orders yet are under <Link to="/team/quotes" className="text-electric underline">Unpaid payment links</Link>, where you can copy or cancel them.</p>
       {me.isLoading ? <p className="mt-6 text-sm text-muted-foreground">Checking access…</p> : !allowed ? <p className="scan-panel mt-8 rounded-2xl p-6 text-sm">Your account doesn't have access to orders.</p> : (
         <>
+          {flagged.length > 0 && (
+            <div role="alert" className="update-flash mt-6 grid gap-2 rounded-2xl border-2 p-4 text-sm">
+              <p className="font-semibold">⚠️ Customer update needed ({flagged.length})</p>
+              {flagged.map(o => <a key={o.id} href={`#order-${o.id}`} className="underline">{o.business_name} — {o.update_needed_note || "new update"}</a>)}
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap gap-2">
-            {(["all", ...BUILD_STATUSES] as const).map(s => (
+            {FILTERS.map(s => (
               <Button key={s} size="sm" variant={filter === s ? "default" : "outline"} onClick={() => setFilter(s)}>
-                {s === "all" ? "All" : LABEL[s]} ({(orders.data ?? []).filter(o => s === "all" || o.build_status === s).length})
+                {FILTER_LABEL[s]} ({(orders.data ?? []).filter(o => inFilter(o, s)).length})
               </Button>
             ))}
           </div>
           {orders.isLoading ? <p className="mt-6 text-sm text-muted-foreground">Loading…</p>
             : orders.error ? <p className="mt-6 text-sm text-destructive">{(orders.error as Error).message}</p>
-            : !shown.length ? <p className="scan-panel mt-6 rounded-2xl p-6 text-sm">No build orders yet.</p>
-            : <div className="mt-6 grid gap-4">{shown.map(o => <OrderCard key={o.id} o={o} isAdmin={role === "admin"} />)}</div>}
+            : !shown.length ? <p className="scan-panel mt-6 rounded-2xl p-6 text-sm">{filter === "ready" ? "Nothing 100% ready to build right now." : filter === "on_hold" ? "Nothing in the Holding Area." : "No build orders here."}</p>
+            : <div className="mt-6 grid gap-4">{shown.map(o => <OrderCard key={o.id} o={o} isAdmin={role === "admin"} userId={me.data?.userId} />)}</div>}
         </>
       )}
     </TeamShell>
   );
 }
 
-function OrderCard({ o, isAdmin }: { o: BuildOrder; isAdmin: boolean }) {
+function OrderCard({ o, isAdmin, userId }: { o: BuildOrder; isAdmin: boolean; userId?: string | undefined }) {
   const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const canEdit = (isAdmin || (!!userId && o.created_by === userId)) && o.status !== "canceled";
   const refresh = () => qc.invalidateQueries({ queryKey: ["build-orders"] });
   const save = useServerFn(updateBuildOrder);
   const up = useServerFn(uploadOrderPhotoTeam);
@@ -73,35 +89,62 @@ function OrderCard({ o, isAdmin }: { o: BuildOrder; isAdmin: boolean }) {
   const saleM = useMutation({ mutationFn: () => enter({ data: { id: o.id, saleAmount: Number(saleAmt) } }), onSuccess: () => { setSaleAmt(""); refresh(); } });
   const charge = useServerFn(chargeNextPaymentNow);
   const chargeM = useMutation({ mutationFn: () => charge({ data: { id: o.id } }), onSettled: refresh });
+  const release = useServerFn(markOrderReady);
+  const relM = useMutation({ mutationFn: () => release({ data: { id: o.id } }), onSuccess: refresh });
+  const delOrder = useServerFn(deleteBuildOrder);
+  const delM = useMutation({ mutationFn: () => delOrder({ data: { id: o.id } }), onSuccess: refresh });
   const m = useMutation({ mutationFn: (s: BuildStatus) => save({ data: { id: o.id, build_status: s, build_notes: notes } }), onSuccess: refresh });
   const t = quoteTotals({ ...o, package_price: Number(o.package_price), membership_price: Number(o.membership_price), discount_value: Number(o.discount_value) });
   const p = o.profile;
   const site = p?.website ? safeHttpUrl(p.website) : null;
   const Row = ({ l, v }: { l: string; v?: React.ReactNode }) => v ? <p><span className="text-muted-foreground">{l}: </span>{v}</p> : null;
   return (
-    <article className="glass-card rounded-2xl p-5 text-sm">
+    <article id={`order-${o.id}`} className={`glass-card scroll-mt-24 rounded-2xl p-5 text-sm ${o.update_needed_at ? "update-flash border-2" : ""}`}>
+      {o.update_needed_at && (
+        <p className="mb-3 rounded-lg bg-warning/20 px-3 py-2 text-xs font-semibold">⚡ UPDATE NEEDED — {o.update_needed_note || "customer sent an update"} ({ptDate(o.update_needed_at)}). {isAdmin ? "Tap Edit order and save the profile to clear." : "The owner clears this after updating."}</p>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="font-display text-xl">{o.business_name}</h2>
+          <h2 className="font-display text-xl">{o.business_name || o.contact_name || `Blank order · ${o.id.slice(0, 8)}`}</h2>
           <p className="text-xs text-muted-foreground">Ready {ptDate(o.build_ready_at)} · sold by {o.created_by_name || "—"}{o.sales_rep_employee_id && ` (${o.sales_rep_employee_id})`}</p>
         </div>
-        <span className="rounded-full border border-border px-3 py-1 text-xs">{LABEL[o.build_status]}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          {canEdit && <Button size="sm" variant="outline" onClick={() => setEditing(v => !v)}>{editing ? "Close editor" : "Edit order"}</Button>}
+          {isAdmin && o.installments_paid === 0 && (
+            <Button size="sm" variant="destructive" disabled={delM.isPending} onClick={() => { if (confirm(`Delete this order for "${o.business_name || o.contact_name || "blank order"}"? This can't be undone.`)) delM.mutate(); }}>{delM.isPending ? "Deleting…" : "🗑 Delete"}</Button>
+          )}
+          <span className="rounded-full border border-border px-3 py-1 text-xs">{LABEL[o.build_status]}</span>
+        </div>
+        {delM.error && <p className="mt-2 text-xs text-destructive">{(delM.error as Error).message}</p>}
       </div>
+      {o.build_status === "on_hold" && (
+        <div className="mt-3 grid gap-2 rounded-xl border-2 bg-warning/20 p-3">
+          <p className="text-sm"><span className="font-semibold">⏸ In the Holding Area — not ready to build.</span>{o.hold_reason && <> Waiting on: {o.hold_reason}</>}</p>
+          {canEdit && <Button size="sm" variant="hero" className="justify-self-start" disabled={relM.isPending} onClick={() => { if (confirm("Is this order 100% ready to build? It will move to the build queue and the owner will be alerted.")) relM.mutate(); }}>{relM.isPending ? "Moving…" : "✓ Mark 100% ready to build"}</Button>}
+          {relM.error && <p className="text-xs text-destructive">{(relM.error as Error).message}</p>}
+        </div>
+      )}
+      {editing && <OrderEditor o={o} onDone={() => { setEditing(false); refresh(); }} />}
       <div className="mt-4 grid gap-1 sm:grid-cols-2">
         <Row l="Sales rep ID" v={o.sales_rep_employee_id} />
         <Row l="Appointment" v={o.appointment_at && `${ptDate(o.appointment_at)} at ${ptTime(o.appointment_at)} PT`} />
         <Row l="Expected by" v={o.expected_by} />
         <Row l="Contact" v={[o.contact_name, p?.contact_role].filter(Boolean).join(", ")} />
         <Row l="Email" v={o.contact_email && <a className="text-electric" href={`mailto:${o.contact_email}`}>{o.contact_email}</a>} />
-        <Row l="Phone" v={p?.phone && <a className="text-electric" href={`tel:${p.phone}`}>{p.phone}</a>} />
-        <Row l="Address" v={p?.address && <a className="text-electric" href={addressMapsUrl(p.address)} target="_blank" rel="noopener noreferrer">{p.address}</a>} />
+        {(() => { const ph = o.customer_phone || p?.phone; return <Row l="Phone" v={ph && <a className="text-electric" href={`tel:${ph}`}>{ph}</a>} />; })()}
+        {(() => { const a = o.customer_address || p?.address; return <Row l="Address" v={a && <a className="text-electric" href={addressMapsUrl(a)} target="_blank" rel="noopener noreferrer">{a}</a>} />; })()}
         <Row l="Website" v={p?.website && (site ? <a className="text-electric" href={site} target="_blank" rel="noopener noreferrer">{p.website}</a> : p.website)} />
-        <Row l="Package" v={o.package_name ? `${o.package_name} (${usd(Math.round(Number(o.package_price) * 100))})` : ""} />
-        <Row l="Add-ons" v={o.addons.map(a => a.name).join(", ")} />
+        <Row l="Customer URL" v={o.customer_url && (safeHttpUrl(o.customer_url) ? <a className="text-electric break-all" href={safeHttpUrl(o.customer_url)!} target="_blank" rel="noopener noreferrer">{o.customer_url}</a> : o.customer_url)} />
+        <Row l="Package" v={o.package_name ? `${o.package_name} (${usd(Math.round(Number(o.package_price) * 100))})` : "No package yet"} />
+        {o.package_details && <Row l="Includes" v={<span className="whitespace-pre-line">{o.package_details}</span>} />}
+        <Row l="Add-ons" v={o.addons.filter(a => a.category !== "ad_budget").map(a => a.name).join(", ")} />
+        <Row l="Prepaid ad budget" v={o.addons.filter(a => a.category === "ad_budget").map(a => `${usd(Math.round(Number(a.price) * 100))}${a.cadence === "monthly" ? "/mo" : " one-time"}`).join(" + ")} />
         <Row l="Membership" v={t.membership > 0 ? `${o.membership_name} ${usd(t.membership)}/mo${o.membership_free_month ? " (first month free)" : ""}` : ""} />
         <Row l="Promo" v={t.discount > 0 ? `${usd(t.discount)} off${o.promo_note ? ` — ${o.promo_note}` : ""}` : ""} />
         <Row l="One-time total" v={usd(t.oneTime)} />
-        <Row l="Payments" v={t.oneTime === 0 ? "$0 order" : `${o.installments_paid} of ${t.parts.length} received`} />
+        <Row l="Payment link" v={o.installments_paid < t.parts.length && o.status !== "canceled" && <a className="text-electric break-all" href={`/pay/${o.id}`} target="_blank" rel="noopener noreferrer">{typeof window !== "undefined" ? window.location.origin : ""}/pay/{o.id}</a>} />
+        <Row l="Payments" v={o.installments_paid === 0 && t.oneTime > 0 ? "Awaiting payment" : t.oneTime === 0 ? "$0 order" : `${o.installments_paid} of ${t.parts.length} received`} />
+        {o.membership && <Row l="Next membership renewal" v={o.membership.next_billing_date ? `${new Date(o.membership.next_billing_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${o.membership.status}` : `No upcoming charge · ${o.membership.status}`} />}
         <Row l="Next automatic charge" v={o.installments_paid < o.installments && !o.refunded_at ? (o.next_installment_at ? ptDate(o.next_installment_at) : o.stripe_payment_method_id ? "Stopped — card declined" : "No saved card") : ""} />
         <Row l="Last charge problem" v={o.last_charge_error} />
         <Row l="Refunded" v={o.refunded_at && ptDate(o.refunded_at)} />
@@ -136,8 +179,8 @@ function OrderCard({ o, isAdmin }: { o: BuildOrder; isAdmin: boolean }) {
           <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
             {o.photos.map(ph => (
               <figure key={ph.id} className="relative">
-                <a href={ph.url} target="_blank" rel="noopener noreferrer"><img src={ph.url} alt={ph.file_name || "Order photo"} className="aspect-square w-full rounded-lg object-cover" loading="lazy" /></a>
-                <figcaption className="mt-1 truncate text-[10px] text-muted-foreground">{ph.source} · {ph.uploaded_by_name}</figcaption>
+                <a href={ph.url} target="_blank" rel="noopener noreferrer">{isPdfFile(ph.file_name, ph.url) ? <span className="grid aspect-square w-full place-items-center rounded-lg border border-border text-xs font-medium">PDF</span> : <img src={ph.url} alt={ph.file_name || "Order photo"} className="aspect-square w-full rounded-lg object-cover" loading="lazy" />}</a>
+                <figcaption className="mt-1 truncate text-[10px] text-muted-foreground">{ph.source === "signed" ? "Signed agreement" : ph.source} · {ph.uploaded_by_name}</figcaption>
                 {isAdmin && <button className="absolute right-1 top-1 rounded bg-background/80 px-1 text-xs" aria-label="Remove photo" onClick={async () => { if (confirm("Remove this photo?")) { await del({ data: { id: ph.id } }); refresh(); } }}>✕</button>}
               </figure>
             ))}
@@ -145,6 +188,7 @@ function OrderCard({ o, isAdmin }: { o: BuildOrder; isAdmin: boolean }) {
         )}
         <PhotoUpload upload={async f => { await up({ data: { quoteId: o.id, file: f } }); }} onDone={refresh} />
       </div>
+      <OrderClientSection quoteId={o.id} canManage={canEdit} onChanged={refresh} />
       {isAdmin && (
         <div className="mt-4 grid gap-2">
           <textarea value={notes} onChange={e => setNotes(e.target.value)} maxLength={4000} rows={2} placeholder="Build notes (owner only)" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" aria-label="Build notes" />

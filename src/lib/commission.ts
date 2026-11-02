@@ -1,12 +1,38 @@
 // Pure pay rules for team commissions.
 export const COMMISSION_RATE = 0.3;
-export const COMMISSION_MINIMUM = 300;
-/** Flat amount earned each month a linked customer's subscription payment succeeds. */
-export const RECURRING_COMMISSION = 10;
+/** Share of each successful monthly renewal paid to the rep who made the linked sale. */
+export const RECURRING_RATE = 0.25;
 
-/** Commission per sale: the greater of 30% of the sale or $300. */
+/** Commission per one-time sale: 30% of the sale amount, no minimum. */
 export function commissionFor(saleAmount: number): number {
-  return Math.round(Math.max(saleAmount * COMMISSION_RATE, COMMISSION_MINIMUM) * 100) / 100;
+  return Math.round(Math.max(0, Number.isFinite(saleAmount) ? saleAmount : 0) * COMMISSION_RATE * 100) / 100;
+}
+
+/** Recurring commission on a renewal payment: 25% of the amount paid. */
+export function recurringCommissionFor(paidAmount: number): number {
+  return Math.round(Math.max(0, Number.isFinite(paidAmount) ? paidAmount : 0) * RECURRING_RATE * 100) / 100;
+}
+
+/** Allocate eligible cents across installments without losing rounding pennies. */
+export function installmentCommissionBase(parts: number[], eligibleCents: number, installment: number): number {
+  const total = parts.reduce((sum, part) => sum + part, 0);
+  if (total <= 0 || installment < 1 || installment > parts.length) return 0;
+  const before = parts.slice(0, installment - 1).reduce((sum, part) => sum + part, 0);
+  const after = before + (parts[installment - 1] ?? 0);
+  return Math.round(after * eligibleCents / total) - Math.round(before * eligibleCents / total);
+}
+
+/** Invoice line bases are pre-tax and post-discount; only explicitly tagged monthly services qualify. */
+export function monthlyInvoiceBase(lines: any[], paidCents: number, invoiceTotal: number): number {
+  const eligible = lines.reduce((sum, line) => {
+    const meta = line.metadata ?? {};
+    if (meta.commission_category !== "monthly_service") return sum;
+    const discounts = (line.discount_amounts ?? []).reduce((s: number, d: any) => s + (d.amount ?? 0), 0);
+    const base = line.amount_excluding_tax ?? line.amount ?? 0;
+    return sum + Math.max(0, base - discounts);
+  }, 0);
+  const fraction = invoiceTotal > 0 ? Math.min(1, Math.max(0, paidCents) / invoiceTotal) : 0;
+  return Math.round(eligible * fraction);
 }
 
 // Pay periods run every 2 weeks, starting Monday Jan 5, 2026.

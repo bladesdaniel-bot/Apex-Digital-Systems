@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { locationLabel, mapsUrl, addressMapsUrl } from "@/lib/geo";
+import { locationLabel, mapsUrl, addressMapsUrl, googleSearchUrl } from "@/lib/geo";
 
 describe("locationLabel", () => {
   it("shows city and state when both are known", () => {
@@ -40,5 +40,25 @@ describe("addressMapsUrl", () => {
     expect(addressMapsUrl("   ")).toBe("");
     expect(addressMapsUrl(null)).toBe("");
     expect(addressMapsUrl(undefined)).toBe("");
+  });
+});
+
+describe("googleSearchUrl", () => {
+  it("builds a Google search link from the business name and address", () => {
+    expect(googleSearchUrl("Reno Plumbing Co", "123 Main St, Reno, NV")).toBe(
+      "https://www.google.com/search?q=Reno%20Plumbing%20Co%20123%20Main%20St%2C%20Reno%2C%20NV",
+    );
+  });
+
+  it("still links with a name only", () => {
+    expect(googleSearchUrl("Reno Plumbing Co")).toBe(
+      "https://www.google.com/search?q=Reno%20Plumbing%20Co",
+    );
+  });
+
+  it("returns nothing without a business name so no dead link renders", () => {
+    expect(googleSearchUrl("")).toBe("");
+    expect(googleSearchUrl("  ", "Reno")).toBe("");
+    expect(googleSearchUrl(null, "Reno")).toBe("");
   });
 });

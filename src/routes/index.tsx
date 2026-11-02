@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import heroImage from "@/assets/nevada-gateway.jpg";
-import pllHero from "@/assets/pll-hero.jpg";
-import pllVial from "@/assets/pll-vial.jpg";
+import founderPhoto from "@/assets/daniel-founder.jpg.asset.json";
 import flyerFixed from "@/assets/apex-flyer-web.jpg";
 import flyerVideo from "@/assets/apex-flyer-animated.mp4.asset.json";
 import flyerVideoPoster from "@/assets/apex-flyer-animated-poster.jpg.asset.json";
@@ -19,15 +18,18 @@ import { ViewCounter, trackFormSubmission } from "@/components/ViewCounter";
 import { AdLoop } from "@/components/AdLoop";
 import { submitLead } from "@/lib/lead.functions";
 import { Textarea } from "@/components/ui/textarea";
-import { interestOptions, packages, services } from "@/lib/offers";
+import { interestOptions, packages, PACKAGE_GROUPS, splitFeature } from "@/lib/offers";
 import { supabase } from "@/integrations/supabase/client";
-import { AetherisConcept } from "@/components/AetherisConcept";
 import { AppsPreview } from "@/components/AppsPreview";
 import { NeuralCanvas } from "@/components/upgrade/NeuralCanvas";
 import { SwarmFeed } from "@/components/upgrade/SwarmFeed";
 import { TerminalMode } from "@/components/upgrade/TerminalMode";
-import { RevenueEngine } from "@/components/upgrade/RevenueEngine";
 import { ScanAnimation } from "@/components/upgrade/LeadExtras";
+import { HiringSpotlight } from "@/components/HiringSpotlight";
+import { VoiceAgent } from "@/components/VoiceAgent";
+import { useSeasonal } from "@/components/HauntedMode";
+import { ThanksgivingHero, ThanksgivingTag } from "@/components/ThanksgivingMode";
+import { ChristmasHero, ChristmasTag } from "@/components/ChristmasMode";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
@@ -69,21 +71,8 @@ function useTeamSession() {
   return { signedIn, terminalAllowed };
 }
 
-const caseStudies = [
-  { client: "Neon Bean Roasters", type: "E-Commerce Redesign & Local SEO", stat: "+210%", text: "Increased online sales by 210% and secured the #1 spot in local map packs within 45 days." },
-  { client: "Sierra Breeze HVAC", type: "Lead Generation Website", stat: "2x", text: "Integrated automated appointment scheduling and doubled inbound service call volume." },
-  { client: "Pinnacle Estate Realty", type: "Custom Automation & Web Launch", stat: "15 hrs", text: "A custom CRM integration and lead capture system saved the sales team 15 hours a week." },
-];
-
-const conceptProducts = [
-  { name: "Neuro-Enhance Protocol", hue: "0deg" },
-  { name: "Cellular Regeneration", hue: "40deg" },
-  { name: "Synthetic Base Matrix", hue: "-30deg" },
-];
-
 const infoPanels: Record<string, { title: string; text: string }> = {
-  ...Object.fromEntries(services.map(s => [s.key, { title: s.title, text: `${s.text} ${s.note}` }])),
-"Our Work": { title: "Our Work", text: "Our selected projects will be added here soon." },
+  "Our Work": { title: "Our Work", text: "Our selected projects will be added here soon." },
   About: { title: "Reno roots. Nationwide reach.", text: "Apex Digital Systems is a digital marketing and web design agency based in Reno, Nevada, serving small businesses nationwide." },
   "Privacy Policy": { title: "Privacy Policy", text: "Visitor analytics: when you visit this site we collect your IP address, approximate location (city, region, country), browser and device information, and the pages you visit. We use this for analytics and security purposes. This data is kept for up to 90 days and then automatically deleted, and it is never sold. If you submit our analysis form, we also keep the details you send so we can contact you. Reach out any time with questions about how your information is handled." },
   "Terms of Service": { title: "Terms of Service", text: "Our terms of service will be published here soon." },
@@ -99,6 +88,9 @@ function Index() {
   const [scanTarget, setScanTarget] = useState("");
   const [terminal, setTerminal] = useState(false);
   const [animateAd, setAnimateAd] = useState(true);
+  const season = useSeasonal();
+  const thanksgiving = season === "thanksgiving";
+  const christmas = season === "christmas";
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setAnimateAd(!preference.matches);
@@ -148,30 +140,30 @@ function Index() {
             <span>Apex<span className="text-muted-foreground"> Digital</span> Systems<span className="text-electric">.</span></span>
           </a>
           <nav aria-label="Main navigation" className="hidden items-center gap-7 text-[13px] font-medium text-muted-foreground lg:flex">
-            <a href="#services" className="transition-colors hover:text-foreground">Services</a>
-            <a href="#pricing" className="transition-colors hover:text-foreground">Pricing</a>
+            <a href="#pricing" className="transition-colors hover:text-foreground">Services &amp; Pricing</a>
             <Link to="/apps" className="transition-colors hover:text-foreground">Apps</Link>
+            <Link to="/ads" className="transition-colors hover:text-foreground">Paid Ads</Link>
             {['Our Work', 'About'].map(name => <Button key={name} variant="link" className="h-auto p-0 text-[13px] text-muted-foreground hover:text-foreground hover:no-underline" onClick={() => openPanel(name)}>{name}</Button>)}
             <Link to="/auth" className="transition-colors hover:text-foreground">{teamSignedIn ? "Team Portal" : "Team Sign In"}</Link>
           </nav>
           <Button variant="hero" asChild className="hidden h-11 px-5 text-xs sm:inline-flex"><a href="#analysis">Free Business Analysis <ArrowUpRight /></a></Button>
           <Button variant="ghost" size="icon" className="lg:hidden" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</Button>
         </div>
-        {menuOpen && <nav aria-label="Mobile navigation" className="flex flex-col gap-4 border-t border-border px-6 py-6 lg:hidden"><a href="#services" onClick={() => setMenuOpen(false)}>Services</a><a href="#pricing" onClick={() => setMenuOpen(false)}>Pricing</a><Link to="/apps" onClick={() => setMenuOpen(false)}>Apps</Link>{['Our Work', 'About'].map(name => <Button key={name} variant="ghost" className="justify-start px-0" onClick={() => openPanel(name)}>{name}</Button>)}<Link to="/auth" onClick={() => setMenuOpen(false)} className="text-muted-foreground transition-colors hover:text-foreground">{teamSignedIn ? "Team Portal" : "Team Sign In"}</Link><Button variant="hero" asChild className="w-full sm:w-auto"><a href="#analysis">Free Business Analysis <ArrowUpRight /></a></Button></nav>}
+        {menuOpen && <nav aria-label="Mobile navigation" className="flex flex-col gap-4 border-t border-border px-6 py-6 lg:hidden"><a href="#pricing" onClick={() => setMenuOpen(false)}>Services &amp; Pricing</a><Link to="/apps" onClick={() => setMenuOpen(false)}>Apps</Link><Link to="/ads" onClick={() => setMenuOpen(false)}>Paid Ads</Link>{['Our Work', 'About'].map(name => <Button key={name} variant="ghost" className="justify-start px-0" onClick={() => openPanel(name)}>{name}</Button>)}<Link to="/client/login" onClick={() => setMenuOpen(false)} className="flex items-center justify-between gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent/20"><span className="flex items-center gap-2 text-accent-foreground"><UserRound className="size-4" />Client Portal</span><ArrowRight className="size-4" /></Link><Link to="/auth" onClick={() => setMenuOpen(false)} className="flex items-center justify-between gap-3 rounded-xl border border-electric/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-primary/20"><span className="flex items-center gap-2 text-electric"><UserRound className="size-4" />{teamSignedIn ? "Team Portal" : "Team Member Portal"}</span><ArrowRight className="size-4 text-electric" /></Link><Button variant="hero" asChild className="w-full sm:w-auto"><a href="#analysis">Free Business Analysis <ArrowUpRight /></a></Button></nav>}
       </header>
 
       <section className="hero flex items-center">
-        <img src={heroImage} alt="An electric blue and violet gateway in the Nevada desert at night" width={1920} height={1024} fetchPriority="high" className="hero-image" />
+        <img src={heroImage} alt="An electric blue and violet gateway in the Nevada desert at night" width={1920} height={1024} fetchPriority="high" className={`hero-image${thanksgiving ? " tg-hero-image" : ""}`} />
+        {thanksgiving && <ThanksgivingHero />}
+        {christmas && <ChristmasHero />}
         <div className="hero-content mx-auto w-full max-w-7xl px-6 pb-24 pt-20 lg:px-10">
+          {thanksgiving && <ThanksgivingTag />}
+          {christmas && <ChristmasTag />}
           <div className="mb-8 flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/80 sm:text-xs"><span className="size-1.5 rounded-full bg-success" /> Small business. Bigger possibilities.</div>
           <h1 className="max-w-4xl font-display text-[42px] font-medium leading-[1.12] sm:text-[58px] lg:text-[72px]">
             Your business shouldn't<br className="hidden sm:block" /> blend in. It should be<br className="hidden sm:block" /> <span className="gradient-text">impossible to ignore.</span>
           </h1>
           <p className="mt-7 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">Small Business Websites, Local SEO &amp; Digital<br className="hidden sm:block" /> Marketing That Generate Leads.</p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Button variant="hero" asChild className="h-14 gap-4 px-6 text-[13px] font-semibold"><a href="#analysis">Get My Free Business Analysis <ArrowUpRight className="size-4" /></a></Button>
-            <Button variant="heroOutline" asChild className="h-14 gap-4 px-6 text-[13px]"><a href="#services">View Services &amp; Pricing <ArrowRight /></a></Button>
-          </div>
           <div className="mt-4 flex items-center gap-2 text-[11px] text-muted-foreground"><Check className="size-3 text-success" /> No pressure. Just possibilities.</div>
           <div className="mt-12 flex flex-wrap items-center gap-x-5 gap-y-4 text-[11px] text-foreground/75">
             <a href="https://www.google.com/maps/search/?api=1&query=Reno%2C+Nevada" target="_blank" rel="noopener noreferrer" title="Find us on Google Maps" className="flex items-center gap-1.5 underline-offset-4 transition-colors hover:text-foreground hover:underline"><MapPin className="size-3.5" /> Based in Reno, Nevada</a>
@@ -179,89 +171,25 @@ function Index() {
             <span className="flex items-center gap-1.5"><Globe2 className="size-3.5" /> Serving Businesses Nationwide</span>
           </div>
         </div>
-        <a href="#services" aria-label="Explore services" className="absolute bottom-8 right-8 hidden items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground lg:flex">Built for your next chapter <ArrowRight className="size-4 rotate-90" /></a>
+        <a href="#pricing" aria-label="Explore services and pricing" className="absolute bottom-8 right-8 hidden items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground lg:flex">Built for your next chapter <ArrowRight className="size-4 rotate-90" /></a>
       </section>
 
-      <section id="services" className="border-t border-border/50">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-12 max-w-2xl">
-            <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Services</p>
-            <h2 className="font-display text-[30px] font-medium leading-[1.15] sm:text-[40px]">What do you need help with?<br className="hidden sm:block" /> <span className="gradient-text">Four ways to grow.</span></h2>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {services.map(({ key, icon: Icon, title, text, link }, i) => (
-              <article key={key} className="grow-card group relative flex flex-col rounded-2xl p-7 sm:p-8">
-                <span className="grow-card-glow" aria-hidden="true" />
-                <div className="relative flex items-start justify-between gap-4">
-                  <span className="service-icon flex size-12 items-center justify-center rounded-xl text-electric transition-colors duration-300 group-hover:text-foreground"><Icon className="size-6" /></span>
-                  <span className="font-display text-xs font-semibold tracking-[0.18em] text-muted-foreground">0{i + 1}</span>
-                </div>
-                <h3 className="relative mt-7 font-display text-[22px] font-medium leading-snug">{title}</h3>
-                <p className="relative mt-3 max-w-sm flex-1 text-sm leading-7 text-muted-foreground">{text}</p>
-                <Button variant="link" className="relative mt-7 w-fit gap-2 px-0 text-[13px] font-semibold text-electric hover:text-foreground hover:no-underline" onClick={() => openPanel(key)}>{link} <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></Button>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HiringSpotlight />
 
-      <section id="work" className="border-t border-border/50">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-12 flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-2xl">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Client Success &amp; Portfolio</p>
-              <h2 className="font-display text-[30px] font-medium leading-[1.15] sm:text-[40px]">Results that <span className="gradient-text">speak for themselves.</span></h2>
+      <Link to="/ads" aria-label="Advertise with Apex Digital Systems — your advertisement could be right here" className="spotlight-banner group block py-5 transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <div className="spotlight-track" aria-hidden="true">
+          {[0, 1].map(copy => (
+            <div key={copy} className="flex items-center">
+              {["Your advertisement could be right here", "Seen by local customers every day", "Claim your spotlight", "Your advertisement could be right here", "Seen by local customers every day", "Claim your spotlight"].map((text, i) => (
+                <span key={i} className="spotlight-item font-display text-sm font-semibold uppercase tracking-[0.22em] text-foreground/90 transition-colors group-hover:text-foreground sm:text-base">
+                  <span className="spotlight-dot" />{text}
+                </span>
+              ))}
             </div>
-            <span className="rounded-full border border-border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sample placeholders</span>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {caseStudies.map(c => (
-              <article key={c.client} className="grow-card group relative flex flex-col rounded-2xl p-7">
-                <span className="grow-card-glow" aria-hidden="true" />
-                <p className="relative text-[10px] font-semibold uppercase tracking-[0.14em] text-electric">{c.type}</p>
-                <h3 className="relative mt-3 font-display text-[22px] font-medium">{c.client}</h3>
-                <p className="relative mt-6 font-display text-[44px] font-semibold leading-none gradient-text">{c.stat}</p>
-                <p className="relative mt-4 text-sm leading-7 text-muted-foreground">{c.text}</p>
-              </article>
-            ))}
-          </div>
+          ))}
         </div>
-      </section>
-
-      <section id="concept" className="concept-section border-t border-border/50">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-10">
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Featured Concept</p>
-          <h2 className="font-display text-[34px] font-medium leading-[1.1] sm:text-[52px]">Featured Concept: <span className="gradient-text">Power Logic Labs</span></h2>
-          <p className="mt-5 text-sm text-muted-foreground">Fictional portfolio example only — not a real business or product offering. Not for sale.</p>
-          <div className="neon-hero relative mt-12 overflow-hidden rounded-3xl">
-            <img src={pllHero} alt="Glowing blue and violet DNA helix" width={1600} height={800} loading="lazy" className="h-[340px] w-full object-cover sm:h-[460px]" />
-            <div className="neon-hero-overlay absolute inset-0 flex flex-col justify-center p-8 sm:p-14">
-              <h3 className="max-w-lg font-display text-[34px] font-semibold leading-[1.05] sm:text-[60px]">Next-Gen Research Materials.</h3>
-              <p className="mt-4 font-display text-xl gradient-text sm:text-2xl">A clearer view.</p>
-            </div>
-          </div>
-          <div className="mt-8 grid gap-6 md:grid-cols-3">
-            {conceptProducts.map(p => (
-              <article key={p.name} className="glass-card group overflow-hidden rounded-2xl">
-                <div className="overflow-hidden"><img src={pllVial} alt={`${p.name} concept vial`} width={816} height={816} loading="lazy" style={{ filter: `hue-rotate(${p.hue})` }} className="aspect-[4/3] w-full object-cover" /></div>
-                <div className="flex items-end justify-between gap-4 p-6">
-                  <div>
-                    <h3 className="font-display text-lg font-medium">{p.name}</h3>
-                    <p className="mt-2 text-xs text-muted-foreground">Fictional design study · Not for sale</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-          <p className="mt-6 text-xs text-muted-foreground">These concepts are separate from Apex Digital Systems’ services and sales.</p>
-        </div>
-      </section>
-
-      <AetherisConcept />
-
-      
-
-      <RevenueEngine />
+        <span className="sr-only">Your advertisement could be right here — learn about paid advertising with Apex</span>
+      </Link>
 
       <section id="pricing" className="border-t border-border/50">
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
@@ -269,36 +197,50 @@ function Index() {
             <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Services &amp; Pricing</p>
             <h2 className="font-display text-[30px] font-medium leading-[1.15] sm:text-[40px]">Clear starting points.<br className="hidden sm:block" /> <span className="gradient-text">Flexible from there.</span></h2>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
-            {packages.map(({ name, price, term, cadence, text, icon: Icon, span, violet, custom }) => (
-              <article key={name} className={`grow-card group relative flex flex-col rounded-2xl p-7 sm:p-8 ${span}${violet ? " grow-card-violet" : ""}`}>
-                <span className="grow-card-glow" aria-hidden="true" />
-                <div className="relative flex items-start justify-between gap-4">
-                  <span className="service-icon flex size-12 items-center justify-center rounded-xl text-electric transition-colors duration-300 group-hover:text-foreground"><Icon className="size-6" /></span>
-                  <span className={`rounded-full border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] ${violet ? "border-violet/45 text-violet-soft" : "border-electric/45 text-electric"}`}>{cadence}</span>
+          <div className="space-y-14">
+            {PACKAGE_GROUPS.map(group => (
+              <div key={group}>
+                <div className="mb-6 flex items-center gap-4">
+                  <h3 className="font-display text-xl font-medium sm:text-2xl">{group}</h3>
+                  <span className="h-px flex-1 bg-gradient-to-r from-electric/60 via-violet/40 to-transparent" aria-hidden="true" />
                 </div>
-                <h3 className="relative mt-7 font-display text-[21px] font-medium leading-snug">{name}</h3>
-                <p className="relative mt-3 flex items-baseline gap-2 text-muted-foreground">
-                  {custom ? (
-                    <span className="font-display text-[30px] font-semibold leading-none text-foreground">Custom quote</span>
-                  ) : (
-                    <>
-                      <span className="text-[11px] uppercase tracking-[0.12em]">Starting at</span>
-                      <span className="font-display text-[30px] font-semibold leading-none text-foreground">{price}</span>
-                      {term && <span className="text-sm text-foreground/70">{term}</span>}
-                    </>
-                  )}
-                </p>
-                <p className="relative mt-4 max-w-md text-sm leading-7 text-muted-foreground">{text}</p>
-                {/* Keeps every card's button on the same line, whatever the card's height. */}
-                <span className="relative flex-1 pt-6" aria-hidden="true" />
-                <Button className="relative self-start" asChild><a href="#analysis" onClick={() => setSelectedPackage(name)}>{custom ? "Request a quote" : "Request info"} <ArrowRight className="size-4" /></a></Button>
-              </article>
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  {packages.filter(p => p.group === group).map(({ name, price, term, sub, cadence, text, icon: Icon, violet, custom, from, popular, features, span }) => (
+                    <article key={name} className={`${span} grow-card group relative flex flex-col rounded-2xl p-7 transition-transform duration-300 hover:-translate-y-1 ${violet ? " grow-card-violet" : ""}${popular ? " ring-2 ring-electric/70 shadow-ambient" : ""}`}>
+                      <span className="grow-card-glow" aria-hidden="true" />
+                      {popular && <span className="relative mb-4 flex w-fit items-center gap-1 rounded-full bg-gradient-to-r from-electric to-violet px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary-foreground shadow-lg"><Sparkles className="size-3" />Most popular</span>}
+                      <div className="relative flex items-start justify-between gap-4">
+                        <span className="service-icon flex size-11 items-center justify-center rounded-xl text-electric transition-colors duration-300 group-hover:text-foreground"><Icon className="size-5" /></span>
+                        <span className={`rounded-full border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] ${violet ? "border-violet/45 text-violet-soft" : "border-electric/45 text-electric"}`}>{cadence}</span>
+                      </div>
+                      <h4 className="relative mt-6 font-display text-[20px] font-medium leading-snug">{name}</h4>
+                      <div className="relative mt-3">
+                        {custom ? (
+                          <span className="font-display text-[30px] font-semibold leading-none gradient-text">Custom quote</span>
+                        ) : (
+                          <p className="flex flex-wrap items-baseline gap-x-2">
+                            {from && <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">From</span>}
+                            <span className="font-display text-[38px] font-semibold leading-none gradient-text">{price}</span>
+                            {term && <span className="text-sm text-foreground/70">{term}</span>}
+                          </p>
+                        )}
+                        {sub && <p className="mt-1 font-display text-lg font-semibold text-foreground">{sub}</p>}
+                      </div>
+                      <p className="relative mt-4 text-sm leading-6 text-muted-foreground">{text}</p>
+                      <ul className={`relative mt-5 flex-1 border-t border-border/50 pt-5 ${span ? "grid content-start gap-x-6 gap-y-2.5 sm:grid-flow-col sm:grid-cols-2 sm:grid-rows-3" : "space-y-2.5"}`}>
+                        {features.map(f => { const [lead, rest] = splitFeature(f); return <li key={f} className="flex items-start gap-2.5 text-[13px] leading-5 text-foreground/90"><Check className="mt-0.5 size-4 shrink-0 text-success" /><span>{lead && <strong className="font-semibold text-foreground">{lead}</strong>}{rest}</span></li>; })}
+                      </ul>
+                      <Button className="relative mt-6 w-full" variant={popular ? "default" : "outline"} asChild><a href="#analysis" onClick={() => setSelectedPackage(name.startsWith("Talking Website") ? "Talking Website Agent" : name)}>{custom ? "Request a quote" : "Get started"} <ArrowRight className="size-4" /></a></Button>
+                    </article>
+                  ))}
+                </div>
+                {group === "Talking websites" && <p className="mt-4 text-[13px] text-muted-foreground">Need more talk time? Extra minutes are just 25¢ each.</p>}
+              </div>
             ))}
           </div>
           <p className="mt-8 flex items-center gap-3 text-[13px] leading-6 text-muted-foreground">
             <span className="service-icon flex size-9 shrink-0 items-center justify-center rounded-lg text-success"><CreditCard className="size-4" /></span>
-            <span><strong className="font-semibold text-foreground">Flexible Payment Options Available</strong> — split payments available on qualifying projects. A team member sets up your plan and sends a secure payment link.</span>
+            <span><strong className="font-semibold text-foreground">Flexible Payment Options Available</strong> — split any project into up to 4 card payments. A team member sets up your plan and sends a secure payment link.</span>
           </p>
           <p className="mt-3 text-[13px] text-muted-foreground">
             <Link to="/billing" className="text-electric underline-offset-4 transition-colors hover:text-foreground hover:underline">Manage Billing</Link> — update your card, download invoices, or cancel a plan in Stripe's secure customer portal.
@@ -311,9 +253,12 @@ function Index() {
       <section id="founder" className="border-t border-border/50">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 py-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16 lg:px-10">
           <div className="founder-photo relative mx-auto w-full max-w-xs overflow-hidden rounded-2xl sm:max-w-sm">
-            <div className="flex aspect-[4/5] flex-col items-center justify-center gap-5 text-muted-foreground">
-              <span className="service-icon flex size-20 items-center justify-center rounded-2xl text-electric"><UserRound className="size-10" /></span>
-              <span className="px-6 text-center text-[10px] font-semibold uppercase tracking-[0.16em]">Professional headshot placeholder</span>
+            <div className="relative aspect-[4/5]">
+              <img src={founderPhoto.url} alt="Daniel, founder of Apex Digital Systems, seated in his office with his dog beside him" className="absolute inset-0 size-full object-cover" />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 via-background/35 to-transparent px-5 pb-4 pt-12">
+                <p className="font-display text-[15px] font-medium text-foreground">Daniel</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Founder, Apex Digital Systems</p>
+              </div>
             </div>
           </div>
           <div>
@@ -363,7 +308,7 @@ function Index() {
                   <img src={adPoster.url} alt="Apex Digital Systems ad: from idea to launch — design, build, secure, inspect, launch" className="absolute inset-0 h-full w-full object-cover" />
                 )}
                 {[
-                  { href: "#services", label: "What we build", top: 72.8, left: 6, width: 88, height: 5.4 },
+                  { href: "#pricing", label: "What we build", top: 72.8, left: 6, width: 88, height: 5.4 },
                   { href: "#analysis", label: "Start your build", top: 81.4, left: 27, width: 46, height: 6.8 },
                   { href: "#top", label: "apexdigitalsystems.org", top: 90.6, left: 20, width: 60, height: 4.4 },
                 ].map((spot) => (
@@ -417,7 +362,7 @@ function Index() {
             </select>
             <Textarea name="details" rows={5} maxLength={2500} placeholder="Tell us about your business — what you do, your goals, current challenges, who your customers are, and anything you'd like help with." aria-label="Business details" className="sm:col-span-2" />
             <Button variant="hero" type="submit" className="h-14 gap-4 text-[13px] font-semibold sm:col-span-2">Send My Information <Send className="size-4" /></Button>
-            <p className="text-xs text-muted-foreground sm:col-span-2">No payment is taken online. A team member will review your details and reach out with a personalized proposal.</p>
+            <p className="text-xs text-muted-foreground sm:col-span-2">Sending this form is free and doesn’t charge you anything. A team member will review your details and reach out with a personalized proposal and a secure online payment link.</p>
           </form>}
           {scan === "scanning" && <ScanAnimation target={scanTarget} />}
           {scan === "done" && <div className="scan-panel mx-auto mt-10 max-w-2xl rounded-2xl p-8"><p className="font-technical text-sm text-success">SCAN COMPLETE</p><Button variant="link" className="mt-3 text-xs" onClick={() => { setScan("idle"); setLeadNotice(null); }}>Start over</Button></div>}
@@ -430,10 +375,11 @@ function Index() {
           <span>© {new Date().getFullYear()} Apex Digital Systems</span>
           <span>Reno roots. Nationwide reach.</span>
            <span className="flex items-center gap-4"><ViewCounter />{terminalAllowed && <Button variant="link" onClick={() => setTerminal(true)} className="h-auto p-0 font-technical text-xs text-aetheris-teal hover:text-foreground">[ / ] Terminal</Button>}</span>
-          <span className="flex items-center gap-5"><Link to="/billing" className="text-xs text-muted-foreground transition-colors hover:text-foreground">Manage Billing</Link><Link to="/auth" className="text-xs text-muted-foreground hover:text-foreground">{teamSignedIn ? "Team Portal" : "Team Sign In"}</Link>{['Privacy Policy', 'Terms of Service'].map(name => <Button key={name} variant="link" className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground hover:no-underline" onClick={() => openPanel(name)}>{name}</Button>)}</span>
+          <span className="flex items-center gap-5"><Link to="/ads" className="text-xs text-muted-foreground transition-colors hover:text-foreground">Paid Ads</Link><Link to="/client/login" className="text-xs text-muted-foreground transition-colors hover:text-foreground">Customer Portal</Link><Link to="/billing" className="text-xs text-muted-foreground transition-colors hover:text-foreground">Manage Billing</Link><Link to="/auth" className="text-xs text-muted-foreground hover:text-foreground">{teamSignedIn ? "Team Portal" : "Team Sign In"}</Link>{['Privacy Policy', 'Terms of Service'].map(name => <Button key={name} variant="link" className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground hover:no-underline" onClick={() => openPanel(name)}>{name}</Button>)}</span>
         </div>
       </footer>
       <SwarmFeed />
+      <VoiceAgent />
       {terminal && terminalAllowed && <TerminalMode packages={packages} onExit={() => setTerminal(false)} />}
 
       <Dialog open={panel !== null} onOpenChange={open => { if (!open) setPanel(null); }}>

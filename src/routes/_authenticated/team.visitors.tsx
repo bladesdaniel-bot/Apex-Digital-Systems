@@ -23,11 +23,6 @@ export const Route = createFileRoute("/_authenticated/team/visitors")({
   component: VisitorsPage,
 });
 
-function top(items: string[], n = 8) {
-  const m = new Map<string, number>();
-  items.forEach(i => m.set(i, (m.get(i) ?? 0) + 1));
-  return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
-}
 
 function VisitorsPage() {
   const access = useServerFn(getMyAccess);
@@ -39,20 +34,8 @@ function VisitorsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const rows = visits.data ?? [];
-  const stats = useMemo(() => {
-    const now = Date.now(), day = 86_400_000, today = ptDayKey(new Date());
-    const within = (d: number) => rows.filter(r => now - Date.parse(r.created_at) <= d * day);
-    const r30 = within(30);
-    return {
-      today: rows.filter(r => ptDayKey(r.created_at) === today).length,
-      d7: within(7).length,
-      d30: r30.length,
-      unique: new Set(r30.map(r => r.ip_address).filter(Boolean)).size,
-      pages: top(r30.map(r => r.page_path)),
-      refs: top(r30.map(r => r.referrer).filter(r => r && !r.includes("(internal)"))),
-    };
-  }, [rows]);
+  const rows = visits.data?.rows ?? [];
+  const stats = visits.data?.stats ?? { today: 0, d7: 0, d30: 0, unique: 0, views30: 0, pages: [], refs: [] };
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -73,7 +56,7 @@ function VisitorsPage() {
       ) : (
         <>
           <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {[["Today", stats.today], ["Last 7 days", stats.d7], ["Last 30 days", stats.d30], ["Unique IPs (30d)", stats.unique]].map(([l, v]) => (
+            {[["Visitors today", stats.today], ["Visitors · 7 days", stats.d7], ["Visitors · 30 days", stats.d30], ["Unique IPs (30d)", stats.unique]].map(([l, v]) => (
               <div key={l} className="revenue-card rounded-2xl p-5">
                 <p className="font-technical text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{l}</p>
                 <p className="mt-2 font-display text-3xl text-electric">{v}</p>
@@ -96,9 +79,9 @@ function VisitorsPage() {
             <label className="text-xs text-muted-foreground">From<Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="mt-1" /></label>
             <label className="text-xs text-muted-foreground">To<Input type="date" value={to} onChange={e => setTo(e.target.value)} className="mt-1" /></label>
           </div>
-          <div className="revenue-card mt-4 overflow-x-auto rounded-2xl">
+          <div className="revenue-card mt-4 max-h-[20rem] overflow-auto overscroll-contain rounded-2xl">
             <table className="w-full text-left text-sm">
-              <thead className="font-technical text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <thead className="sticky top-0 z-10 bg-card font-technical text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                 <tr>{["Date", "Time (PT)", "IP", "City / State", "Page", "Referrer", "Device"].map(h => <th key={h} className="p-3 whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody>

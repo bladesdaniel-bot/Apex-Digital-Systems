@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { TeamShell } from "@/components/TeamShell";
 import { getMyAccess, listTeam } from "@/lib/team.functions";
 import { listAllCommissions, listMyCommissions, markCommissionsPaid, recordSale, deleteCommission, listPayingCustomers, type Commission } from "@/lib/commissions.functions";
-import { RECURRING_COMMISSION, commissionFor, money, payPeriodFor } from "@/lib/commission";
+import { commissionFor, money, payPeriodFor } from "@/lib/commission";
 import { listTaxInfo, getW9Requirement, setW9Requirement, getMyTaxInfo } from "@/lib/tax-info.functions";
 import { TaxInfoForm } from "@/components/TaxInfoForm";
 import { NEC_THRESHOLD, formatTin, yearPayouts } from "@/lib/tax-info";
@@ -38,7 +38,7 @@ function EarningsPage() {
   return (
     <TeamShell isAdmin={isAdmin}>
       <h1 className="font-display text-4xl font-medium">Team <span className="gradient-text">earnings</span></h1>
-      <p className="mt-3 max-w-xl text-sm text-muted-foreground">Commission per sale is 30% or $300, whichever is greater. Each month a linked customer's payment goes through, the employee earns another {money(RECURRING_COMMISSION)} automatically. Pay periods run every 2 weeks.</p>
+      <p className="mt-3 max-w-xl text-sm text-muted-foreground">Earn 30% of collected one-time service payments and 25% of paid monthly services, including the first paid month. Split payments earn as collected. Tax, ad budgets and overage charges are excluded. Pay periods run every 2 weeks.</p>
       {me.isLoading ? <p className="mt-6 text-sm text-muted-foreground">Checking access…</p> : isAdmin ? <OwnerView /> : <MyView />}
     </TeamShell>
   );
@@ -64,7 +64,7 @@ function Table({ rows, names, onPay, onDelete, busy }: { rows: Commission[]; nam
                 <div className="flex items-center justify-end gap-2">
                   <span className="text-xs text-star">Owed</span>
                   {onDelete && <Button size="sm" variant="outline" disabled={busy} onClick={() => { if (confirm("Remove this sale?")) onDelete(r.id); }}>Remove</Button>}
-                  {onPay && <Button size="sm" disabled={busy} onClick={() => onPay([r.id])}>Mark paid</Button>}
+                  {onPay && <Button size="sm" disabled={busy || !!r.flag_note} onClick={() => onPay([r.id])}>Mark paid</Button>}
                 </div>
               )}
             </td>
@@ -135,7 +135,7 @@ function OwnerView() {
         <Input name="date" type="date" defaultValue={today()} required />
         <Input name="description" placeholder="What they sold (optional)" maxLength={500} className="sm:col-span-2" />
         <label className="grid gap-1 text-xs text-muted-foreground sm:col-span-2">
-          Monthly customer (optional) — link a paying customer so this employee earns {money(RECURRING_COMMISSION)} every month their payment goes through
+          Customer record (optional) — automatic monthly earnings use the sales rep on the original order
           <select name="member" className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground" defaultValue="">
             <option value="">Not a monthly customer</option>
             {(customers.data ?? []).map(c => <option key={c.id} value={c.id}>{c.business_name || c.full_name || c.email}{c.plan_name ? ` · ${c.plan_name}` : ""}{c.status !== "active" ? ` (${c.status})` : ""}</option>)}

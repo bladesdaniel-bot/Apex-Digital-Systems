@@ -1,6 +1,44 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useHaunted } from "@/components/HauntedMode";
+import { useMusicChoice } from "@/components/MusicChoice";
+import { resolvePlaylist, type MusicTrack } from "@/lib/music-tracks";
+import hauntedSoundtrack from "@/assets/haunted-soundtrack.mp3.asset.json";
+import flyerSong from "@/assets/apex-flyer-song.mp3.asset.json";
+
+const RECORDINGS: Record<Exclude<MusicTrack, "synth">, string> = {
+  haunted: hauntedSoundtrack.url,
+  flyer: flyerSong.url,
+};
+
+function createSound(playlist: MusicTrack[]) {
+  const recordings = playlist.filter((t): t is Exclude<MusicTrack, "synth"> => t !== "synth");
+  return recordings.length ? createRecording(recordings.map((t) => RECORDINGS[t])) : createSoundscape();
+}
+
+// Recordings played back to back; one song loops, several play through in order on repeat.
+function createRecording(urls: string[]) {
+  let index = 0;
+  const audio = new Audio(urls[0]);
+  audio.loop = urls.length === 1;
+  audio.volume = 0.5;
+  audio.preload = "auto";
+  audio.onended = () => {
+    index = (index + 1) % urls.length;
+    audio.src = urls[index]!;
+    void audio.play().catch(() => {});
+  };
+  return {
+    context: {
+      get state() { return audio.paused ? "suspended" : "running"; },
+      resume: async () => { await audio.play(); },
+      suspend: async () => { audio.pause(); },
+    },
+    start: () => {},
+    dispose: () => { audio.onended = null; audio.pause(); audio.removeAttribute("src"); audio.load(); },
+  };
+}
 
 // Original upbeat advertising instrumental: pop hook, warm chords and a punchy groove.
 // Synthesized locally; no third-party recording or license required.
@@ -136,14 +174,96 @@ function createSoundscape() {
 }
 
 export function AmbientMusic() {
-  const sound = useRef<ReturnType<typeof createSoundscape> | null>(null);
+  const sound = useRef<ReturnType<typeof createSoundscape> | ReturnType<typeof createRecording> | null>(null);
+  const isHaunted = useHaunted();
+  const choice = useMusicChoice();
+  // Random shuffles the mode's songs once per choice change, then plays them all in turn.
+  const playlist = useMemo<MusicTrack[]>(() => resolvePlaylist(choice ?? "auto", isHaunted), [choice, isHaunted]);
+  const track = playlist.join(",");
+  const ready = choice !== undefined;
+  const soundMode = useRef<string>(track);
   const [playing, setPlaying] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  // True when this page load started the music by itself (Haunted Mode auto-play).
+  const autoStarted = useRef(false);
   useEffect(() => () => { sound.current?.dispose(); }, []);
+
+  // Haunted Mode: eerie music starts on its own when the page loads (owner request).
+  // Browsers that hold audio until the first touch begin on the first tap/scroll/key.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (soundMode.current !== track) {
+      sound.current?.dispose();
+      sound.current = null;
+      soundMode.current = track;
+      setPlaying(false);
+    }
+    if (!ready) return;
+    // Music always starts off: visitors must tap the music button to turn it on (owner request).
+    const AUTOPLAY = false;
+    if (!AUTOPLAY || !isHaunted || !playlist.some((t) => t !== "synth")) {
+      if (autoStarted.current && sound.current?.context.state === "running") {
+        void sound.current.context.suspend();
+        setPlaying(false);
+      }
+      autoStarted.current = false;
+      return;
+    }
+    let muted = false;
+    try { muted = localStorage.getItem("apex-music-muted") === "true"; } catch { /* Storage is optional. */ }
+    if (muted) return;
+    if (sound.current?.context.state === "running") return; // Visitor already started music themselves.
+    let cancelled = false;
+    const release = () => {
+      window.removeEventListener("pointerdown", begin);
+      window.removeEventListener("touchend", begin);
+      window.removeEventListener("click", begin);
+      window.removeEventListener("keydown", begin);
+      window.removeEventListener("wheel", begin);
+    };
+    const listen = () => {
+      window.addEventListener("pointerdown", begin);
+      window.addEventListener("touchend", begin);
+      window.addEventListener("click", begin);
+      window.addEventListener("keydown", begin);
+      window.addEventListener("wheel", begin);
+    };
+    const begin = async () => {
+      const s = sound.current;
+      if (cancelled || !s) return;
+      try {
+        await s.context.resume();
+        s.start();
+        if (s.context.state === "running") {
+          release();
+          if (!cancelled) setPlaying(true);
+        }
+        // Not running yet: this gesture didn't count as activation; keep listening for the next one.
+      } catch { /* Browser still refused; listeners stay registered for the next gesture. */ }
+    };
+    const attempt = async () => {
+      const s = sound.current ?? createSound(playlist);
+      sound.current = s;
+      try {
+        await s.context.resume();
+        if (s.context.state === "running") {
+          s.start();
+          if (!cancelled) setPlaying(true);
+          return;
+        }
+      } catch { /* Autoplay policy holds the audio. */ }
+      autoStarted.current = true;
+      listen();
+    };
+    autoStarted.current = true;
+    void attempt();
+    return () => { cancelled = true; release(); };
+  }, [isHaunted, track, ready]);
 
   async function toggle() {
     try {
-      if (!sound.current) sound.current = createSoundscape();
+      if (!sound.current) sound.current = createSound(playlist);
+      autoStarted.current = false; // A deliberate tap overrides the haunted auto-start.
       if (playing) {
         await sound.current.context.suspend();
         setPlaying(false);

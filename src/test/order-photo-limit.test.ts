@@ -76,4 +76,14 @@ describe("order photo size limit", () => {
     ).rejects.toThrow("maximum number of photos");
     expect(stored).toHaveLength(0);
   });
+
+  it("accepts a PDF only as a signed agreement", async () => {
+    const pdf = { name: "agreement.pdf", type: "application/pdf", base64: pngBase64(2048) };
+    const ok = fakeDb();
+    await storeOrderPhoto(ok.db, "quote-1", pdf, "signed", "Daniel");
+    expect(ok.stored[0]?.path).toMatch(/\.pdf$/);
+    const no = fakeDb();
+    await expect(storeOrderPhoto(no.db, "quote-1", pdf, "team", "Daniel")).rejects.toThrow("Please upload a photo");
+    expect(no.stored).toHaveLength(0);
+  });
 });

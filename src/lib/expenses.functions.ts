@@ -41,6 +41,7 @@ export const scanReceiptImage = createServerFn({ method: "POST" })
 export const saveExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({
+    id: z.string().uuid().optional(),
     expense_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date."),
     vendor: z.string().trim().min(1, "Add the vendor.").max(200),
     amount: z.coerce.number().min(0).max(10_000_000),
@@ -52,6 +53,7 @@ export const saveExpense = createServerFn({ method: "POST" })
   }).refine(v => v.allocation === "general" || v.project.length > 0, "Name the app or project.").parse(d))
   .handler(async ({ data, context }) => {
     await requireAdmin(context);
+    const db: any = context.supabase;
     let receipt_path = "";
     if (data.image) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -61,8 +63,20 @@ export const saveExpense = createServerFn({ method: "POST" })
       const { error } = await (supabaseAdmin as any).storage.from("expense-receipts").upload(receipt_path, bytes, { contentType: data.image.type });
       if (error) throw new Error("Couldn't save the receipt image.");
     }
-    const { image: _i, ...row } = data;
-    const { error } = await (context.supabase as any).from("company_expenses").insert({ ...row, project: row.allocation === "project" ? row.project : "", receipt_path, created_by: context.userId });
+    const { image: _i, id, ...row } = data;
+    const fields = { ...row, project: row.allocation === "project" ? row.project : "" };
+    if (id) {
+      const { data: old } = await db.from("company_expenses").select("receipt_path").eq("id", id).maybeSingle();
+      if (!old) throw new Error("That expense no longer exists.");
+      const { error } = await db.from("company_expenses").update(receipt_path ? { ...fields, receipt_path } : fields).eq("id", id);
+      if (error) throw new Error("Couldn't update the expense.");
+      if (receipt_path && old.receipt_path) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await (supabaseAdmin as any).storage.from("expense-receipts").remove([old.receipt_path]);
+      }
+      return { ok: true };
+    }
+    const { error } = await db.from("company_expenses").insert({ ...fields, receipt_path, created_by: context.userId });
     if (error) throw new Error("Couldn't save the expense.");
     return { ok: true };
   });

@@ -1,0 +1,1 @@
+INSERT INTO public.site_settings (key, value) VALUES ('voice_agent_enabled', 'true') ON CONFLICT (key) DO NOTHING;

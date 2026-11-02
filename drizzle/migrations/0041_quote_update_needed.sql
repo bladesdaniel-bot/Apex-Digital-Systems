@@ -1,0 +1,1 @@
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS update_needed_at timestamptz, ADD COLUMN IF NOT EXISTS update_needed_note text NOT NULL DEFAULT '';

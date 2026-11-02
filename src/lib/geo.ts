@@ -25,3 +25,11 @@ export function addressMapsUrl(address: string | null | undefined): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 
+/** Google search link for researching a business by name (optionally narrowed by location), or "" with no name. */
+export function googleSearchUrl(name: string | null | undefined, location?: string | null): string {
+  const business = clean(name);
+  if (!business) return "";
+  const q = [business, clean(location)].filter(Boolean).join(" ");
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+}
+

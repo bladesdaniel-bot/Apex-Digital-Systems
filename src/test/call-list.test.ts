@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callQueue, upcomingCalls, subscribers, matchesWebsiteFilter, safeHttpUrl } from "@/lib/call-list";
+import { callQueue, upcomingCalls, subscribers, matchesWebsiteFilter, safeHttpUrl, isCallbackPending, callbackScheduleSchema, sameTrade, isExcludedCategory } from "@/lib/call-list";
 
 const row = (status: "queued" | "subscriber" | "dismissed", called_at: string | null, found_at: string) => ({ status, called_at, found_at });
 
@@ -46,16 +46,32 @@ describe("matchesWebsiteFilter", () => {
 });
 
 describe("upcomingCalls", () => {
-  const queue = ["a", "b", "c", "d"].map(id => ({ ...row("queued", null, "2026-03-01"), id }));
-  it("shows exactly three businesses when at least three are available", () => {
-    expect(upcomingCalls(queue, []).map(r => r.id)).toEqual(["a", "b", "c"]);
+  const queue = ["a", "b", "c", "d", "e", "f"].map(id => ({ ...row("queued", null, "2026-03-01"), id }));
+  it("shows exactly five businesses when at least five are available", () => {
+    expect(upcomingCalls(queue, []).map(r => r.id)).toEqual(["a", "b", "c", "d", "e"]);
   });
   it("moves a skipped business behind the other queued businesses", () => {
-    expect(upcomingCalls(queue, ["b"]).map(r => r.id)).toEqual(["a", "c", "d"]);
-    expect(upcomingCalls(queue, ["b", "a"]).map(r => r.id)).toEqual(["c", "d", "b"]);
+    expect(upcomingCalls(queue, ["b"]).map(r => r.id)).toEqual(["a", "c", "d", "e", "f"]);
   });
-  it("does not duplicate businesses when fewer than three remain", () => {
+  it("does not duplicate businesses when fewer than five remain", () => {
     expect(upcomingCalls(queue.slice(0, 2), ["a"]).map(r => r.id)).toEqual(["b", "a"]);
+  });
+  it("puts Tier 1 before Tier 2 before other businesses", () => {
+    const mixed = [
+      { ...row("queued", null, "2026-03-01"), id: "x", category: "Florist" },
+      { ...row("queued", null, "2026-03-01"), id: "p", category: "Plumber" },
+      { ...row("queued", null, "2026-03-01"), id: "r", category: "Roofing contractor" },
+    ];
+    expect(upcomingCalls(mixed, []).map(r => r.id)).toEqual(["r", "p", "x"]);
+  });
+});
+
+describe("salons", () => {
+  it("are excluded from the call list", () => {
+    expect(isExcludedCategory("Hair salon")).toBe(true);
+    expect(isExcludedCategory("Nail salon")).toBe(true);
+    expect(isExcludedCategory("Barber shop")).toBe(true);
+    expect(isExcludedCategory("Roofing contractor")).toBe(false);
   });
 });
 
@@ -76,6 +92,22 @@ describe("randomCityFor", () => {
   });
 });
 
+describe("scheduled call-backs", () => {
+  it("keeps a scheduled call-back out of the shared queue even after its time passes", () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const past = new Date(Date.now() - 60_000).toISOString();
+    const rows = [
+      { ...row("queued", null, "2026-03-02"), id: "waiting", callback_at: future },
+      { ...row("queued", null, "2026-03-01"), id: "due", callback_at: past },
+      { ...row("queued", null, "2026-03-01"), id: "normal", callback_at: null },
+    ];
+    expect(callQueue(rows).map(r => r.id)).toEqual(["normal"]);
+    expect(isCallbackPending({ callback_at: future })).toBe(true);
+    expect(isCallbackPending({ callback_at: past })).toBe(false);
+    expect(isCallbackPending({ callback_at: null })).toBe(false);
+  });
+});
+
 describe("safeHttpUrl", () => {
   it("makes web addresses clickable, including bare domains", () => {
     expect(safeHttpUrl("https://www.travelyosemite.com/winter/curry-village?utm_source=google")).toBe("https://www.travelyosemite.com/winter/curry-village?utm_source=google");
@@ -93,6 +125,21 @@ describe("safeHttpUrl", () => {
   });
 });
 
+describe("callbackScheduleSchema", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  it("keeps the reason: a scheduled call-back without a reason is rejected", () => {
+    const res = callbackScheduleSchema.safeParse({ id, callback_at: "2026-10-15T18:00:00.000Z", callback_reason: "" });
+    expect(res.success).toBe(false);
+    const blank = callbackScheduleSchema.safeParse({ id, callback_at: "2026-10-15T18:00:00.000Z", callback_reason: "   " });
+    expect(blank.success).toBe(false);
+  });
+
+  it("accepts a scheduled call-back with a reason and a clearing without one", () => {
+    expect(callbackScheduleSchema.safeParse({ id, callback_at: "2026-10-15T18:00:00.000Z", callback_reason: "Owner asked for a call Tuesday morning" }).success).toBe(true);
+    expect(callbackScheduleSchema.safeParse({ id, callback_at: null }).success).toBe(true);
+  });
+});
+
 import { callQueue as stableQueue } from "@/lib/call-list";
 describe("queue order stays put after a refresh", () => {
   it("keeps businesses from the same search in the same order regardless of load order", () => {
@@ -100,5 +147,39 @@ describe("queue order stays put after a refresh", () => {
     const a = { ...base, id: "a" }, b = { ...base, id: "b" }, c = { ...base, id: "c" };
     expect(stableQueue([c, a, b]).map(r => r.id)).toEqual(["a", "b", "c"]);
     expect(stableQueue([b, c, a]).map(r => r.id)).toEqual(["a", "b", "c"]);
+  });
+});
+
+import { visibleCallbackRows } from "@/lib/call-list";
+describe("visibleCallbackRows", () => {
+  const rows = [
+    { id: "mine", callback_at: "2026-10-14T00:00:00Z", callback_by: "u1" },
+    { id: "theirs", callback_at: "2026-10-14T00:00:00Z", callback_by: "u2" },
+    { id: "none", callback_at: null, callback_by: null },
+  ];
+  it("hides other employees' pending call-backs", () => {
+    expect(visibleCallbackRows(rows, "u1", false).map(r => r.id)).toEqual(["mine", "none"]);
+  });
+  it("keeps a due call-back private to the teammate who set it", () => {
+    const due = [{ id: "theirs-due", callback_at: "2026-10-12T00:00:00Z", callback_by: "u2" }];
+    expect(visibleCallbackRows(due, "u1", false)).toHaveLength(0);
+    expect(visibleCallbackRows(due, "u2", false)).toHaveLength(1);
+  });
+  it("lets the admin see every call-back", () => {
+    expect(visibleCallbackRows(rows, "u1", true)).toHaveLength(3);
+  });
+});
+
+describe("sameTrade", () => {
+  it("matches coffee searches to Google's cafe categories", () => {
+    expect(sameTrade("Cafe", "coffee")).toBe(true);
+    expect(sameTrade("Coffee shop", "coffee")).toBe(true);
+    expect(sameTrade("Espresso bar", "coffee")).toBe(true);
+    expect(sameTrade("Coffee roastery", "coffee")).toBe(true);
+  });
+  it("still matches plumber variants and rejects unrelated trades", () => {
+    expect(sameTrade("Plumbing contractor", "plumber")).toBe(true);
+    expect(sameTrade("Bakery", "coffee")).toBe(false);
+    expect(sameTrade("Dentist", "plumber")).toBe(false);
   });
 });

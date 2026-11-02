@@ -65,8 +65,16 @@ function Expenses() {
 
   const [img, setImg] = useState<Img | null>(null);
   const [scanMsg, setScanMsg] = useState("");
-  const [f, setF] = useState({ expense_date: today(), vendor: "", amount: "", allocation: "general" as "general" | "project", project: "", category: "Other" as string, description: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const blank = () => ({ expense_date: today(), vendor: "", amount: "", allocation: "general" as "general" | "project", project: "", category: "Other" as string, description: "" });
+  const [f, setF] = useState(blank);
   const set = (k: keyof typeof f, v: string) => setF(p => ({ ...p, [k]: v }));
+  const reset = () => { setF(blank()); setImg(null); setScanMsg(""); setEditingId(null); };
+  const startEdit = (r: NonNullable<typeof rows.data>[number]) => {
+    setEditingId(r.id); setImg(null); setScanMsg("");
+    setF({ expense_date: r.expense_date, vendor: r.vendor, amount: String(r.amount), allocation: r.allocation as "general" | "project", project: r.project ?? "", category: r.category, description: r.description ?? "" });
+    document.getElementById("expense-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const scanM = useMutation({
     mutationFn: async (file: File) => {
@@ -85,10 +93,9 @@ function Expenses() {
     onError: e => setScanMsg(e instanceof Error ? e.message : "Couldn't read that file."),
   });
   const saveM = useMutation({
-    mutationFn: () => save({ data: { ...f, amount: Number(f.amount) || 0, category: f.category as (typeof EXPENSE_CATEGORIES)[number], image: img } }),
+    mutationFn: () => save({ data: { ...f, ...(editingId ? { id: editingId } : {}), amount: Number(f.amount) || 0, category: f.category as (typeof EXPENSE_CATEGORIES)[number], image: img } }),
     onSuccess: () => {
-      setF({ expense_date: today(), vendor: "", amount: "", allocation: "general", project: "", category: "Other", description: "" });
-      setImg(null); setScanMsg("");
+      reset();
       qc.invalidateQueries({ queryKey: ["expenses"] });
     },
   });
@@ -130,10 +137,10 @@ function Expenses() {
         )}
       </div>
 
-      <form onSubmit={submit} className="scan-panel mt-6 space-y-4 rounded-2xl p-6">
-        <p className="font-technical text-[11px] uppercase tracking-[0.16em] text-electric">Add an expense</p>
+      <form id="expense-form" onSubmit={submit} className="scan-panel mt-6 scroll-mt-24 space-y-4 rounded-2xl p-6">
+        <p className="font-technical text-[11px] uppercase tracking-[0.16em] text-electric">{editingId ? "Editing expense" : "Add an expense"}</p>
         <label className="block text-sm">
-          <span className="text-muted-foreground">Receipt screenshot (optional) — we'll fill in the details for you</span>
+          <span className="text-muted-foreground">{editingId ? "Replace receipt screenshot (optional) — leave empty to keep the current one" : "Receipt screenshot (optional) — we'll fill in the details for you"}</span>
           <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="mt-2 block w-full text-sm" onChange={e => { const file = e.target.files?.[0]; if (file) scanM.mutate(file); }} />
         </label>
         {scanMsg && <p role="status" className="text-sm text-muted-foreground">{scanMsg}</p>}
@@ -151,7 +158,10 @@ function Expenses() {
         </div>
         <label className="block text-sm">What was it for?<Input maxLength={500} value={f.description} onChange={e => set("description", e.target.value)} /></label>
         {saveM.error && <p role="alert" className="text-sm text-destructive">{saveM.error.message}</p>}
-        <Button type="submit" disabled={saveM.isPending || scanM.isPending}>{saveM.isPending ? "Saving…" : "Save expense"}</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={saveM.isPending || scanM.isPending}>{saveM.isPending ? "Saving…" : editingId ? "Update expense" : "Save expense"}</Button>
+          {editingId && <Button type="button" variant="outline" onClick={reset}>Cancel edit</Button>}
+        </div>
       </form>
 
       <div className="revenue-card mt-6 rounded-2xl p-6">
@@ -167,7 +177,10 @@ function Expenses() {
                 <div className="text-xs text-muted-foreground">{r.expense_date} · {r.category} · {r.allocation === "project" ? r.project : GENERAL_LABEL}{r.description ? ` · ${r.description}` : ""}</div>
                 {r.receipt_url && <a href={r.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-electric underline-offset-4 hover:underline">View receipt ↗</a>}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => { if (confirm("Delete this expense?")) delM.mutate(r.id); }}>Delete</Button>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" onClick={() => startEdit(r)}>Edit</Button>
+                <Button variant="ghost" size="sm" onClick={() => { if (confirm("Delete this expense?")) { if (editingId === r.id) reset(); delM.mutate(r.id); } }}>Delete</Button>
+              </div>
             </li>
           ))}
         </ul>

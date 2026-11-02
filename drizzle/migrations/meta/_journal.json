@@ -218,6 +218,146 @@
       "when": 1791672306534,
       "tag": "0030_site_settings_admin_write",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791850421026,
+      "tag": "0031_call_list_callbacks",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791850568890,
+      "tag": "0032_callback_reminder_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791851843082,
+      "tag": "0033_timecards_and_call_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791852580757,
+      "tag": "0034_add_call_back_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791852878840,
+      "tag": "0035_callback_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791991419901,
+      "tag": "0036_client_portal",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791997807679,
+      "tag": "0037_visitor_stats",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792004357998,
+      "tag": "0038_add_customer_url_to_quotes",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792092583979,
+      "tag": "0039_add_customer_address_to_quotes",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792102231813,
+      "tag": "0040_quote_customer_phone",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792111304587,
+      "tag": "0041_quote_update_needed",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792159633275,
+      "tag": "0042_quote_hold_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792161534258,
+      "tag": "0043_quote_receipts",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792172886272,
+      "tag": "0044_call_list_no_answer",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792436736274,
+      "tag": "0045_voice_agent_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792438500538,
+      "tag": "0046_team_gender_position",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792439858196,
+      "tag": "0047_profile_location",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792440094042,
+      "tag": "0048_profile_age",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792975038461,
+      "tag": "0049_commission_payment_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793054112500,
+      "tag": "0050_client_ad_funds",
+      "breakpoints": true
     }
   ]
 }

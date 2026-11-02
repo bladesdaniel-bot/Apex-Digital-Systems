@@ -6,10 +6,10 @@ const SCENE_MS = 4200;
 type Spot = { href: string; label: string; top: number; left: number; width: number; height: number };
 
 const STATIC_SPOTS: Spot[] = [
-  { href: "#services", label: "Websites", top: 54.3, left: 6.7, width: 42.5, height: 9.2 },
-  { href: "#services", label: "SEO and local growth", top: 54.3, left: 50.8, width: 42.5, height: 9.2 },
-  { href: "#services", label: "Custom apps", top: 64.7, left: 6.7, width: 42.5, height: 9.2 },
-  { href: "#services", label: "Paid ads and growth", top: 64.7, left: 50.8, width: 42.5, height: 9.2 },
+  { href: "#pricing", label: "Websites", top: 54.3, left: 6.7, width: 42.5, height: 9.2 },
+  { href: "#pricing", label: "SEO and local growth", top: 54.3, left: 50.8, width: 42.5, height: 9.2 },
+  { href: "#pricing", label: "Custom apps", top: 64.7, left: 6.7, width: 42.5, height: 9.2 },
+  { href: "#pricing", label: "Paid ads and growth", top: 64.7, left: 50.8, width: 42.5, height: 9.2 },
   { href: "#pricing", label: "See starting prices", top: 76, left: 12, width: 76, height: 3.5 },
   { href: "#analysis", label: "Get my free business analysis", top: 80.4, left: 19, width: 62, height: 6.2 },
   { href: "#top", label: "apexdigitalsystems.org", top: 88.6, left: 22, width: 56, height: 4 },
@@ -34,7 +34,7 @@ const SCENES: { key: string; node: ReactNode }[] = [
         <p className="text-[5.6cqw] leading-[1.35] text-foreground">We build websites</p>
         <p className="-mt-[2cqw] text-[5.6cqw] leading-[1.35] neon-success">& custom software</p>
         <p className="mt-[2cqw] rounded-full border border-star/70 px-[5cqw] py-[2.2cqw] text-[4.6cqw] font-semibold neon-star">
-          Websites from {packages.find((p) => p.name === "Website Launch")?.price}
+          Websites from {packages.find((p) => p.name === "Starter Site")?.price}
         </p>
         <p className="text-[3.5cqw] text-muted-foreground">No startup cost &middot; payment plans</p>
       </div>

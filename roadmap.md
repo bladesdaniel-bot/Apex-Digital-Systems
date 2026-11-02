@@ -1,4 +1,12 @@
 # Roadmap
+- [x] Allow blank unpaid orders and a No package selection in Holding; verified signed-in creation and editing.
+- [x] Add "When they hesitate" as Part 6 of the team Training videos.
+- [x] Align website/Build Order packages and Playbook PDFs with the latest uploads, including the $150/month Ads add-on.
+- [x] Correct future payment commissions: 30% collected one-time services, 25% monthly services; tested installment accruals, exclusions and duplicate delivery. Signed-in selections verified without charging a customer.
+- [ ] Verify real payment-to-earnings flow and reconcile historical commissions — requires an authorized payment/test-mode transaction; historical amounts are unchanged.
+- [x] Sync website and Build Order packages with the October 25 uploaded pricing PDF and replace the Playbook Packages document.
+- [x] Remove the home-page sample results and Apps-page CyberSecurity Tool purchase box; keep demo videos.
+- [x] Feature the uploaded hiring ad on the home and Paid Ads pages with an easy email application.
 - [x] Crop the uploaded app animation and add a clickable home-page preview linking to /apps
 - [x] Add a separate public apps showcase with the uploaded demo video
 - [x] Build orders: created after first payment, owner email alert, Admin Build Orders view with status
@@ -19,3 +27,12 @@
 - [x] Replace the home-page price-board ad so it shows $1,000, not the baked-in $1,200
 - [x] Flyer corrected: $1,000 prices, Custom Apps card replacing social media, lighter image for the page
 - [ ] Abstract the demo website video for demonstrations, place it on the site with "this could be yours" messaging, and change the phone number shown so it doesn't reach a real estimate line
+- [x] Paid Ads page (/ads) linked from main navigation
+- [x] Call-back scheduling on call list (leaves queue until time arrives)
+- [x] Alert assigned team member when call-back is due; alert admin if unhandled after 1 hour
+- [x] Customer portal (/client): order-prefilled account setup, password, files, change requests with owner alerts
+- [x] Rep uploads signed agreement on the order; customer keeps a copy in their portal
+- [x] Customer activity history and estimates kept in the portal
+- [x] Ask new team members male/female at sign-up; show it to the owner
+- [x] Invite codes carry a position (Telemarketer or Engineer)
+- [x] Owner can delete unpaid build orders (duplicates) from Build Orders; paid orders are refused.

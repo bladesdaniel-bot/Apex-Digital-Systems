@@ -59,7 +59,7 @@ export const markCommissionsPaid = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!(await isAdmin(context))) throw new Error("Admins only.");
     const { error } = await (context.supabase as any).from("commissions")
-      .update({ status: "paid", paid_at: new Date().toISOString(), paid_note: data.note }).in("id", data.ids).eq("status", "owed");
+      .update({ status: "paid", paid_at: new Date().toISOString(), paid_note: data.note }).in("id", data.ids).eq("status", "owed").eq("flag_note", "");
     if (error) throw new Error("Couldn't mark as paid.");
     return { ok: true };
   });

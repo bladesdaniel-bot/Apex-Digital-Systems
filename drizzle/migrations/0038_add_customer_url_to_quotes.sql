@@ -1,0 +1,2 @@
+ALTER TABLE public.quotes ADD COLUMN customer_url text NOT NULL DEFAULT '';
+COMMENT ON COLUMN public.quotes.customer_url IS 'The customer website URL captured on the order, kept for customer records.';

@@ -10,7 +10,7 @@ export const notifyTeamSignup = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db: any = supabaseAdmin;
     const [{ data: prof }, { data: role }] = await Promise.all([
-      db.from("profiles").select("email, username, employee_id, created_at").eq("id", data.userId).maybeSingle(),
+      db.from("profiles").select("email, username, employee_id, created_at, gender, position, location, age").eq("id", data.userId).maybeSingle(),
       db.from("user_roles").select("role").eq("user_id", data.userId).maybeSingle(),
     ]);
     if (!prof || Date.now() - new Date(prof.created_at).getTime() > 15 * 60_000) return { ok: true };
@@ -24,6 +24,10 @@ export const notifyTeamSignup = createServerFn({ method: "POST" })
           lines: [
             { label: "Employee ID", value: prof.employee_id },
             { label: "Name", value: prof.username },
+            { label: "Gender", value: prof.gender ? prof.gender[0].toUpperCase() + prof.gender.slice(1) : "Not given" },
+            { label: "Age", value: prof.age ? String(prof.age) : "Not given" },
+            { label: "Location", value: prof.location || "Not given" },
+            { label: "Position", value: prof.position === "engineer" ? "Engineer" : "Telemarketer" },
             { label: "Email", value: prof.email },
             { label: "Status", value: role?.role ?? "pending" },
           ],

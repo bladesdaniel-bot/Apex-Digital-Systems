@@ -40,7 +40,7 @@ function PayPage() {
   const t = quoteTotals({ ...q, package_price: Number(q.package_price), membership_price: Number(q.membership_price), discount_value: Number(q.discount_value) });
   const next = q.installments_paid + 1;
   const done = q.status === "paid" || next > t.parts.length;
-  const dueNow = (t.parts[next - 1] ?? 0) + (next === 1 && !q.membership_free_month ? t.membership : 0);
+  const dueNow = next === 1 ? t.dueToday : (t.parts[next - 1] ?? 0);
 
   return (
     <main className="mx-auto min-h-screen max-w-xl px-6 py-14">
@@ -49,11 +49,12 @@ function PayPage() {
       {q.contact_name && <p className="mt-1 text-sm text-muted-foreground">Prepared for {q.contact_name}</p>}
       <div className="glass-card mt-8 grid gap-2 rounded-2xl p-6 text-sm">
         {q.package_name && Number(q.package_price) > 0 && <Line l={q.package_name} v={usd(Math.round(Number(q.package_price) * 100))} />}
-        {q.addons.map((a, i) => <Line key={i} l={a.name} v={usd(Math.round(Number(a.price) * 100))} />)}
+        {q.package_details && <p className="whitespace-pre-line text-xs leading-5 text-muted-foreground">{q.package_details}</p>}
+        {q.addons.map((a, i) => <Line key={i} l={a.name} v={`${usd(Math.round(Number(a.price) * 100))}${a.cadence === "monthly" ? "/mo" : ""}`} />)}
         {t.discount > 0 && <Line l="Promo" v={`− ${usd(t.discount)}`} />}
         <Line l="One-time total" v={usd(t.oneTime)} strong />
         {t.parts.length > 1 && <Line l="Payment plan" v={t.parts.map(usd).join(" + ")} />}
-        {t.membership > 0 && <Line l={`${q.membership_name} (monthly)`} v={q.membership_free_month ? `First month free, then ${usd(t.membership)}/mo` : `${usd(t.membership)}/mo`} />}
+        {t.membership > 0 && <Line l="Monthly total" v={q.membership_free_month ? `First month free, then ${usd(t.membership)}/mo` : `${usd(t.membership)}/mo`} />}
         <p className="text-xs text-muted-foreground">Sales tax is added at checkout where it applies.{t.parts.length > 1 ? " After the first payment, the remaining payments are charged automatically to the same card every 30 days." : ""}{t.membership > 0 ? " The membership renews monthly until canceled." : ""}</p>
       </div>
 

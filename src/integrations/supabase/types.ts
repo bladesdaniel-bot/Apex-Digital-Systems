@@ -47,6 +47,12 @@ export type Database = {
           brief_at: string | null
           budget: string
           business_name: string
+          callback_at: string | null
+          callback_by: string | null
+          callback_escalated_at: string | null
+          callback_name: string
+          callback_notified_at: string | null
+          callback_reason: string
           called_at: string | null
           called_by: string | null
           caller_name: string
@@ -60,6 +66,10 @@ export type Database = {
           id: string
           interested_package: string
           needs: string
+          no_answer_at: string | null
+          no_answer_by: string | null
+          no_answer_count: number
+          no_answer_name: string
           outcome: string
           phone: string
           place_id: string
@@ -83,6 +93,12 @@ export type Database = {
           brief_at?: string | null
           budget?: string
           business_name: string
+          callback_at?: string | null
+          callback_by?: string | null
+          callback_escalated_at?: string | null
+          callback_name?: string
+          callback_notified_at?: string | null
+          callback_reason?: string
           called_at?: string | null
           called_by?: string | null
           caller_name?: string
@@ -96,6 +112,10 @@ export type Database = {
           id?: string
           interested_package?: string
           needs?: string
+          no_answer_at?: string | null
+          no_answer_by?: string | null
+          no_answer_count?: number
+          no_answer_name?: string
           outcome?: string
           phone?: string
           place_id: string
@@ -119,6 +139,12 @@ export type Database = {
           brief_at?: string | null
           budget?: string
           business_name?: string
+          callback_at?: string | null
+          callback_by?: string | null
+          callback_escalated_at?: string | null
+          callback_name?: string
+          callback_notified_at?: string | null
+          callback_reason?: string
           called_at?: string | null
           called_by?: string | null
           caller_name?: string
@@ -132,6 +158,10 @@ export type Database = {
           id?: string
           interested_package?: string
           needs?: string
+          no_answer_at?: string | null
+          no_answer_by?: string | null
+          no_answer_count?: number
+          no_answer_name?: string
           outcome?: string
           phone?: string
           place_id?: string
@@ -174,6 +204,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      call_log: {
+        Row: {
+          business_name: string
+          call_list_id: string | null
+          callback_reason: string
+          called_at: string
+          caller_name: string
+          id: string
+          outcome: string
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          business_name?: string
+          call_list_id?: string | null
+          callback_reason?: string
+          called_at?: string
+          caller_name?: string
+          id?: string
+          outcome?: string
+          phone?: string
+          user_id: string
+        }
+        Update: {
+          business_name?: string
+          call_list_id?: string | null
+          callback_reason?: string
+          called_at?: string
+          caller_name?: string
+          id?: string
+          outcome?: string
+          phone?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       cancellations: {
         Row: {
@@ -246,6 +312,196 @@ export type Database = {
           },
         ]
       }
+      client_activity: {
+        Row: {
+          actor_name: string
+          created_at: string
+          id: string
+          kind: string
+          quote_id: string
+          summary: string
+        }
+        Insert: {
+          actor_name?: string
+          created_at?: string
+          id?: string
+          kind: string
+          quote_id: string
+          summary: string
+        }
+        Update: {
+          actor_name?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          quote_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_activity_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_ad_funds: {
+        Row: {
+          added_by_name: string
+          amount: number
+          created_at: string
+          id: string
+          paid_at: string | null
+          quote_id: string
+          status: string
+          stripe_env: string
+          stripe_payment_ref: string
+          stripe_session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          added_by_name?: string
+          amount: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          quote_id: string
+          status?: string
+          stripe_env?: string
+          stripe_payment_ref?: string
+          stripe_session_id?: string
+          user_id?: string | null
+        }
+        Update: {
+          added_by_name?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          quote_id?: string
+          status?: string
+          stripe_env?: string
+          stripe_payment_ref?: string
+          stripe_session_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_ad_funds_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_invites: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          quote_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          quote_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          quote_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invites_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_links: {
+        Row: {
+          created_at: string
+          phone: string
+          quote_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          phone?: string
+          quote_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          phone?: string
+          quote_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_links_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_requests: {
+        Row: {
+          author_name: string
+          created_at: string
+          id: string
+          message: string
+          quote_id: string
+          resolved_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string
+          created_at?: string
+          id?: string
+          message: string
+          quote_id: string
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          created_at?: string
+          id?: string
+          message?: string
+          quote_id?: string
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_requests_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commissions: {
         Row: {
           commission_amount: number
@@ -256,11 +512,15 @@ export type Database = {
           employee_id: string
           flag_note: string
           id: string
+          installment_number: number | null
           kind: string
           member_id: string | null
+          order_quote_id: string | null
           paid_at: string | null
           paid_note: string
+          payment_ref: string | null
           quote_id: string | null
+          refunded_service_amount: number
           sale_amount: number
           sale_date: string
           status: string
@@ -275,11 +535,15 @@ export type Database = {
           employee_id: string
           flag_note?: string
           id?: string
+          installment_number?: number | null
           kind?: string
           member_id?: string | null
+          order_quote_id?: string | null
           paid_at?: string | null
           paid_note?: string
+          payment_ref?: string | null
           quote_id?: string | null
+          refunded_service_amount?: number
           sale_amount: number
           sale_date?: string
           status?: string
@@ -294,11 +558,15 @@ export type Database = {
           employee_id?: string
           flag_note?: string
           id?: string
+          installment_number?: number | null
           kind?: string
           member_id?: string | null
+          order_quote_id?: string | null
           paid_at?: string | null
           paid_note?: string
+          payment_ref?: string | null
           quote_id?: string | null
+          refunded_service_amount?: number
           sale_amount?: number
           sale_date?: string
           status?: string
@@ -310,6 +578,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_order_quote_id_fkey"
+            columns: ["order_quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
           {
@@ -612,27 +887,83 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           created_at: string
           email: string
           employee_id: string
+          gender: string
           id: string
+          location: string
+          position: string
           username: string
         }
         Insert: {
+          age?: number | null
           created_at?: string
           email: string
           employee_id?: string
+          gender?: string
           id: string
+          location?: string
+          position?: string
           username?: string
         }
         Update: {
+          age?: number | null
           created_at?: string
           email?: string
           employee_id?: string
+          gender?: string
           id?: string
+          location?: string
+          position?: string
           username?: string
         }
         Relationships: []
+      }
+      quote_receipts: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          installment: number
+          invoice_number: string
+          pdf_url: string
+          quote_id: string
+          receipt_url: string
+          stripe_ref: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          installment?: number
+          invoice_number?: string
+          pdf_url?: string
+          quote_id: string
+          receipt_url?: string
+          stripe_ref: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          installment?: number
+          invoice_number?: string
+          pdf_url?: string
+          quote_id?: string
+          receipt_url?: string
+          stripe_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_receipts_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quotes: {
         Row: {
@@ -648,9 +979,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_name: string
+          customer_address: string
+          customer_phone: string
+          customer_url: string
           discount_type: string
           discount_value: number
           expected_by: string | null
+          hold_reason: string
           id: string
           installment_failures: number
           installments: number
@@ -661,6 +996,7 @@ export type Database = {
           membership_price: number
           next_installment_at: string | null
           one_time_total: number
+          package_details: string
           package_name: string
           package_price: number
           promo_note: string
@@ -670,6 +1006,8 @@ export type Database = {
           stripe_customer_id: string
           stripe_env: string
           stripe_payment_method_id: string
+          update_needed_at: string | null
+          update_needed_note: string
           updated_at: string
         }
         Insert: {
@@ -685,9 +1023,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string
+          customer_address?: string
+          customer_phone?: string
+          customer_url?: string
           discount_type?: string
           discount_value?: number
           expected_by?: string | null
+          hold_reason?: string
           id?: string
           installment_failures?: number
           installments?: number
@@ -698,6 +1040,7 @@ export type Database = {
           membership_price?: number
           next_installment_at?: string | null
           one_time_total?: number
+          package_details?: string
           package_name?: string
           package_price?: number
           promo_note?: string
@@ -707,6 +1050,8 @@ export type Database = {
           stripe_customer_id?: string
           stripe_env?: string
           stripe_payment_method_id?: string
+          update_needed_at?: string | null
+          update_needed_note?: string
           updated_at?: string
         }
         Update: {
@@ -722,9 +1067,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string
+          customer_address?: string
+          customer_phone?: string
+          customer_url?: string
           discount_type?: string
           discount_value?: number
           expected_by?: string | null
+          hold_reason?: string
           id?: string
           installment_failures?: number
           installments?: number
@@ -735,6 +1084,7 @@ export type Database = {
           membership_price?: number
           next_installment_at?: string | null
           one_time_total?: number
+          package_details?: string
           package_name?: string
           package_price?: number
           promo_note?: string
@@ -744,6 +1094,8 @@ export type Database = {
           stripe_customer_id?: string
           stripe_env?: string
           stripe_payment_method_id?: string
+          update_needed_at?: string | null
+          update_needed_note?: string
           updated_at?: string
         }
         Relationships: [
@@ -763,6 +1115,7 @@ export type Database = {
           created_by: string | null
           expires_at: string
           id: string
+          position: string
           requester_email: string
           used_at: string | null
           used_by: string | null
@@ -773,6 +1126,7 @@ export type Database = {
           created_by?: string | null
           expires_at?: string
           id?: string
+          position?: string
           requester_email?: string
           used_at?: string | null
           used_by?: string | null
@@ -783,6 +1137,7 @@ export type Database = {
           created_by?: string | null
           expires_at?: string
           id?: string
+          position?: string
           requester_email?: string
           used_at?: string | null
           used_by?: string | null
@@ -822,6 +1177,33 @@ export type Database = {
           id?: number
           total?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      team_shifts: {
+        Row: {
+          clock_in: string
+          clock_out: string | null
+          ended_by: string
+          id: string
+          last_seen: string
+          user_id: string
+        }
+        Insert: {
+          clock_in?: string
+          clock_out?: string | null
+          ended_by?: string
+          id?: string
+          last_seen?: string
+          user_id: string
+        }
+        Update: {
+          clock_in?: string
+          clock_out?: string | null
+          ended_by?: string
+          id?: string
+          last_seen?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -931,9 +1313,16 @@ export type Database = {
             Returns: string
           }
       validate_signup_code: { Args: { _code: string }; Returns: boolean }
+      visitor_stats: { Args: never; Returns: Json }
     }
     Enums: {
-      app_role: "admin" | "telemarketer" | "pending" | "revoked" | "suspended"
+      app_role:
+        | "admin"
+        | "telemarketer"
+        | "pending"
+        | "revoked"
+        | "suspended"
+        | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1061,7 +1450,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "telemarketer", "pending", "revoked", "suspended"],
+      app_role: [
+        "admin",
+        "telemarketer",
+        "pending",
+        "revoked",
+        "suspended",
+        "client",
+      ],
     },
   },
 } as const

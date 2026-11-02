@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { interestOptions, packages, services } from "@/lib/offers";
-import { QUOTE_PACKAGES } from "@/lib/quote";
+import { QUOTE_MEMBERSHIPS, QUOTE_PACKAGES } from "@/lib/quote";
 import { runCommand } from "@/components/upgrade/TerminalMode";
 
 describe("Custom App Design & Build offering", () => {
@@ -17,7 +17,7 @@ describe("Custom App Design & Build offering", () => {
     expect(interestOptions).toContain("Custom App Design & Build");
   });
 
-  it("has its own card in the services grid", () => {
+  it("stays listed in the shared services data", () => {
     expect(services.map(s => s.key)).toContain("Custom Apps & Software");
   });
 
@@ -32,22 +32,58 @@ describe("Custom App Design & Build offering", () => {
   });
 });
 
-describe("Website Launch & Redesign pricing", () => {
-  // Dropped from $1,200 on the owner's instruction.
-  it("advertises both website packages at $1,000", () => {
-    expect(packages.find(p => p.name === "Website Launch")?.price).toBe("$1,000");
-    expect(packages.find(p => p.name === "Website Redesign")?.price).toBe("$1,000");
+describe("package prices from the pricing guide", () => {
+  it.each([
+    ["Starter Site", 1000], ["Business Site", 1750], ["Complete Online Store Package", 2500],
+    ["Website Redesign", 750], ["SEO Growth Cleanup", 399],
+    ["Talking Website Starter (setup)", 500], ["Talking Website Standard (setup)", 750],
+    ["Talking Website Premium (setup)", 1000],
+  ])("defaults %s to the uploaded PDF's $%s in Build Order", (name, amount) => {
+    expect(QUOTE_PACKAGES.find(p => p.name === name)?.price).toBe(amount);
+  });
+  it.each([
+    ["Website Care Plan", 125], ["Growth and Maintenance", 250],
+    ["Talking Website Starter", 199], ["Talking Website Standard", 279], ["Talking Website Premium", 349],
+  ])("defaults %s to $%s monthly in Build Order", (name, amount) => {
+    expect(QUOTE_MEMBERSHIPS.find(p => p.name === name)?.price).toBe(amount);
+  });
+  it("keeps the store at a flat price and redesign as a starting price", () => {
+    expect(QUOTE_PACKAGES.find(p => p.name === "Complete Online Store Package")?.from).toBeFalsy();
+    expect(QUOTE_PACKAGES.find(p => p.name === "Website Redesign")?.from).toBe(true);
+  });
+  const price = (n: string) => packages.find(p => p.name === n)?.price;
+  it("advertises each package at the guide price", () => {
+    expect(price("Starter Site")).toBe("$1,000");
+    expect(price("Business Site")).toBe("$1,750");
+    expect(price("Complete Online Store Package")).toBe("$2,500");
+    expect(price("Website Redesign")).toBe("$750");
+    expect(price("SEO Growth Cleanup")).toBe("$399");
+    expect(price("Website Care Plan")).toBe("$125");
+    expect(price("Growth and Maintenance")).toBe("$250");
+  });
+  it("lists talking website setup and monthly fees", () => {
+    expect(packages.find(p => p.name === "Talking Website Starter")).toMatchObject({ price: "$500", sub: "+ $199/mo" });
+    expect(packages.find(p => p.name === "Talking Website Standard")).toMatchObject({ price: "$750", sub: "+ $279/mo" });
+    expect(packages.find(p => p.name === "Talking Website Premium")).toMatchObject({ price: "$1,000", sub: "+ $349/mo" });
+  });
+  it("order builder quotes the same prices", () => {
+    const q = (n: string) => QUOTE_PACKAGES.find(p => p.name === n)?.price;
+    expect(q("Starter Site")).toBe(1000);
+    expect(q("Business Site")).toBe(1750);
+    expect(q("Complete Online Store Package")).toBe(2500);
+    expect(q("Website Redesign")).toBe(750);
+    expect(q("Talking Website Premium (setup)")).toBe(1000);
+    expect(QUOTE_MEMBERSHIPS.map(m => m.price)).toEqual([125, 250, 199, 279, 349, 150]);
+  });
+});
+
+describe("customer form interest options", () => {
+  it("offers the option under its full name", () => {
+    expect(interestOptions).toContain("Talking Website Agent");
   });
 
-  it("quotes the same $1,000 the home page advertises", () => {
-    expect(QUOTE_PACKAGES.find(p => p.name === "Website Launch")?.price).toBe(1000);
-    expect(QUOTE_PACKAGES.find(p => p.name === "Website Redesign")?.price).toBe(1000);
-  });
-
-  it("leaves every other package price alone", () => {
-    expect(packages.find(p => p.name === "SEO Growth Cleanup")?.price).toBe("$399");
-    expect(packages.find(p => p.name === "Website Care Plan")?.price).toBe("$125");
-    expect(packages.find(p => p.name === "Website Growth & Maintenance")?.price).toBe("$250");
+  it("never shows the old short name", () => {
+    expect(interestOptions).not.toContain("Talking Website");
   });
 });
 
@@ -55,12 +91,12 @@ import { flyerPriceRows } from "@/lib/offers";
 describe("animated flyer price rows", () => {
   it("advertise exactly the prices the pricing cards show", () => {
     expect(flyerPriceRows).toEqual([
-      { label: "Website Launch", price: "$1,000" },
-      { label: "Website Redesign", price: "$1,000" },
-      { label: "SEO Growth Cleanup", price: "$399" },
+      { label: "Starter Site", price: "$1,000" },
+      { label: "Business Site", price: "$1,750" },
+      { label: "Redesign", price: "from $750" },
       { label: "Care Plan", price: "$125/mo" },
       { label: "Growth Plan", price: "$250/mo" },
-      { label: "Custom Software", price: "Custom quote" },
+      { label: "SEO Cleanup", price: "$399" },
     ]);
   });
 

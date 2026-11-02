@@ -3,14 +3,15 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { canUseBrief, type TeamRole } from "./team-access";
 import { MAX_INSTALLMENTS, quoteTotals, type Addon, type DiscountType } from "./quote";
+import { needsOrderDetails, orderBusinessName } from "./order-draft";
 
 export type Quote = {
   id: string; call_list_id: string | null; business_name: string; contact_name: string; contact_email: string;
-  package_name: string; package_price: number; addons: Addon[]; membership_name: string; membership_price: number; membership_free_month: boolean;
+  package_name: string; package_details: string; package_price: number; addons: Addon[]; membership_name: string; membership_price: number; membership_free_month: boolean;
   discount_type: DiscountType; discount_value: number; promo_note: string; installments: number; installments_paid: number;
   one_time_total: number; status: "open" | "partially_paid" | "paid" | "canceled"; created_by_name: string; created_at: string;
 };
-const COLS = "id, call_list_id, business_name, contact_name, contact_email, package_name, package_price, addons, membership_name, membership_price, membership_free_month, discount_type, discount_value, promo_note, installments, installments_paid, one_time_total, status, created_by_name, created_at";
+const COLS = "id, call_list_id, business_name, contact_name, contact_email, package_name, package_details, package_price, addons, membership_name, membership_price, membership_free_month, discount_type, discount_value, promo_note, installments, installments_paid, one_time_total, status, created_by_name, created_at";
 
 async function requireTeam(ctx: any) {
   const { data } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId).maybeSingle();
@@ -20,12 +21,16 @@ async function requireTeam(ctx: any) {
 const money = z.coerce.number().min(0).max(100000);
 const quoteInput = z.object({
   call_list_id: z.string().uuid().nullable(),
-  business_name: z.string().trim().min(1, "Add the business name.").max(200),
+  business_name: orderBusinessName,
   contact_name: z.string().trim().max(120),
   contact_email: z.union([z.literal(""), z.string().trim().email().max(255)]),
+  customer_url: z.union([z.literal(""), z.string().trim().url().max(500)]).default(""),
+  customer_address: z.string().trim().max(300).default(""),
+  customer_phone: z.string().trim().max(40).default(""),
   package_name: z.string().trim().max(200),
+  package_details: z.string().trim().max(4000).default(""),
   package_price: money,
-  addons: z.array(z.object({ name: z.string().trim().min(1).max(120), price: money })).max(10),
+  addons: z.array(z.object({ name: z.string().trim().min(1).max(120), price: money, cadence: z.enum(["one_time", "monthly"]).optional(), category: z.enum(["service", "ad_budget", "extra_minutes", "extra_hours"]).optional() })).max(10),
   membership_name: z.string().trim().max(200),
   membership_price: money,
   membership_free_month: z.boolean().default(false),
@@ -34,13 +39,16 @@ const quoteInput = z.object({
   promo_note: z.string().trim().max(500),
   installments: z.coerce.number().int().min(1).max(MAX_INSTALLMENTS),
 });
+const createInput = quoteInput.extend({ place_order: z.boolean().default(false), hold_reason: z.string().trim().max(500).optional() });
 
 export const createQuote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => quoteInput.parse(d))
-  .handler(async ({ data, context }) => {
+  .inputValidator((d: unknown) => createInput.parse(d))
+  .handler(async ({ data: input, context }) => {
     await requireTeam(context);
+    const { place_order, hold_reason, ...data } = input;
     const t = quoteTotals(data);
+    if (data.membership_free_month && data.addons.some(a => a.cadence === "monthly" && a.price > 0)) throw new Error("Put paid monthly add-ons on a separate order when offering a free first month.");
     if (t.parts.some(p => p > 0 && p < 50) || (t.membership > 0 && t.membership < 50)) throw new Error("Each charge must be at least $0.50, or $0.");
     if (data.membership_price > 0 && !data.membership_name) throw new Error("Name the membership.");
     const db: any = context.supabase;
@@ -59,6 +67,26 @@ export const createQuote = createServerFn({ method: "POST" })
       expected_by: cust?.expected_by ?? null,
     }).select("id").single();
     if (error) throw new Error("Couldn't save the quote. Try again.");
+    // The rep who writes the order becomes the customer's rep of record when nobody has claimed them yet,
+    // so the commission is ready the moment the order is completed.
+    if (data.call_list_id) {
+      await db.from("call_list").update({
+        rep_id: context.userId,
+        rep_name: prof?.username || prof?.email || "Team member",
+        rep_employee_id: prof?.employee_id ?? "",
+      }).eq("id", data.call_list_id).is("rep_id", null);
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { linkProfilePhotos } = await import("./build-order.server");
+        await linkProfilePhotos(supabaseAdmin, data.call_list_id, row.id, prof?.username || prof?.email || "Team");
+      } catch (e) { console.error("Link profile photos:", e instanceof Error ? e.message : e); }
+    }
+    if (place_order || needsOrderDetails(data)) {
+      // Rep places the order now; it reaches Build Orders and the owner without waiting for payment.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { markBuildReady } = await import("./build-order.server");
+      await markBuildReady(supabaseAdmin, row.id, needsOrderDetails(data) ? { unpaid: true, hold: hold_reason || "Waiting on customer / package details" } : typeof hold_reason === "string" ? { unpaid: true, hold: hold_reason } : { unpaid: true });
+    }
     return { id: row.id as string };
   });
 
@@ -87,9 +115,9 @@ export const getPublicQuote = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: q } = await (supabaseAdmin as any).from("quotes")
-      .select("id, business_name, contact_name, package_name, package_price, addons, membership_name, membership_price, membership_free_month, discount_type, discount_value, installments, installments_paid, status, build_status")
+      .select("id, business_name, contact_name, package_name, package_details, package_price, addons, membership_name, membership_price, membership_free_month, discount_type, discount_value, installments, installments_paid, status, build_status")
       .eq("id", data.id).maybeSingle();
-    return (q ?? null) as null | Pick<Quote, "id" | "business_name" | "contact_name" | "package_name" | "package_price" | "addons" | "membership_name" | "membership_price" | "membership_free_month" | "discount_type" | "discount_value" | "installments" | "installments_paid" | "status"> & { build_status: string };
+    return (q ?? null) as null | Pick<Quote, "id" | "business_name" | "contact_name" | "package_name" | "package_details" | "package_price" | "addons" | "membership_name" | "membership_price" | "membership_free_month" | "discount_type" | "discount_value" | "installments" | "installments_paid" | "status"> & { build_status: string };
   });
 
 /** Public: starts checkout for the next unpaid part of a quote. Amounts always come from the saved quote. */
@@ -112,7 +140,13 @@ export const createQuoteCheckout = createServerFn({ method: "POST" })
       const stripe = createStripeClient(data.environment);
       const lineItems: any[] = [];
       if (partCents > 0) lineItems.push({ price_data: { currency: "usd", product_data: { name: label }, unit_amount: partCents }, quantity: 1 });
-      if (withMembership) lineItems.push({ price_data: { currency: "usd", product_data: { name: quote.membership_name }, unit_amount: t.membership, recurring: { interval: "month" } }, quantity: 1 });
+      if (withMembership) {
+        const monthlyItems = [
+          ...(Number(quote.membership_price) > 0 ? [{ name: quote.membership_name, price: Number(quote.membership_price), category: "service" }] : []),
+          ...quote.addons.filter(a => a.cadence === "monthly" && a.price > 0),
+        ];
+        for (const item of monthlyItems) lineItems.push({ price_data: { currency: "usd", product_data: { name: item.name, metadata: { quote_id: quote.id, commission_category: !item.category || item.category === "service" ? "monthly_service" : "excluded" } }, unit_amount: Math.round(item.price * 100), recurring: { interval: "month" } }, quantity: 1 });
+      }
       if (!lineItems.length) return { error: "Nothing is due on this quote." };
       const metadata = { quote_id: quote.id, installment: String(next) };
       const create = (withTax: boolean) => stripe.checkout.sessions.create({
@@ -127,7 +161,7 @@ export const createQuoteCheckout = createServerFn({ method: "POST" })
         metadata,
         ...(withMembership
           ? { subscription_data: { metadata, ...(quote.membership_free_month && { trial_period_days: 30 }) } }
-          : { customer_creation: "always" as const, payment_intent_data: { description: `${label} — ${quote.business_name}`, metadata, ...(next < t.parts.length && { setup_future_usage: "off_session" as const }) } }),
+          : { customer_creation: "always" as const, invoice_creation: { enabled: true }, payment_intent_data: { description: `${label} — ${quote.business_name}`, metadata, ...(next < t.parts.length && { setup_future_usage: "off_session" as const }) } }),
       });
       let session;
       try { session = await create(true); } catch (e) {
@@ -138,4 +172,25 @@ export const createQuoteCheckout = createServerFn({ method: "POST" })
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
+  });
+
+export type OrderMatch = { id: string; business_name: string; contact_name: string; contact_email: string; customer_phone: string; customer_address: string; customer_url: string; package_name: string; one_time_total: number; status: string; build_status: string; created_by_name: string; created_at: string; call_list_id: string | null };
+
+/** Incoming-caller lookup across orders (walk-ins included): 3+ phone digits or 2+ letters of a name. */
+export const searchOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ q: z.string().trim().max(100) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireTeam(context);
+    const digits = data.q.replace(/\D/g, "");
+    const text = data.q.trim().toLowerCase();
+    if (digits.length < 3 && text.length < 2) return [] as OrderMatch[];
+    const { data: rows, error } = await (context.supabase as any).from("quotes")
+      .select("id, business_name, contact_name, contact_email, customer_phone, customer_address, customer_url, package_name, one_time_total, status, build_status, created_by_name, created_at, call_list_id")
+      .order("created_at", { ascending: false }).limit(500);
+    if (error) throw new Error("Couldn't search orders.");
+    const phoneSearch = digits.length >= 3 && /^[\d\s()+.-]+$/.test(data.q);
+    return ((rows ?? []) as OrderMatch[]).filter(r => phoneSearch
+      ? (r.customer_phone ?? "").replace(/\D/g, "").includes(digits)
+      : [r.business_name, r.contact_name, r.contact_email].some(v => (v ?? "").toLowerCase().includes(text))).slice(0, 8);
   });

@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { VisitTracker } from "@/components/VisitTracker";
 import { HighlightReader } from "@/components/HighlightReader";
 import { AmbientMusic } from "@/components/AmbientMusic";
+import { HauntedMode } from "@/components/HauntedMode";
 
 function NotFoundComponent() {
   return (
@@ -126,6 +127,7 @@ function RootComponent() {
       <Outlet />
       <VisitTracker />
       <HighlightReader />
+      <HauntedMode />
       <AmbientMusic />
     </QueryClientProvider>
   );

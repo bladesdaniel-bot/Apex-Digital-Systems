@@ -298,3 +298,162 @@
   .flyer-stars, .flyer-grid { animation: none; }
   .flyer-scene { transition: none; }
 }
+
+/* ---- Spotlight marquee: eye-catching paid-ads banner ---- */
+.spotlight-banner {
+  position: relative;
+  overflow: hidden;
+  border-block: 1px solid color-mix(in oklch, var(--electric) 40%, transparent);
+  background:
+    radial-gradient(ellipse 60% 120% at 15% 50%, color-mix(in oklch, var(--electric) 16%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 120% at 85% 50%, color-mix(in oklch, var(--violet) 18%, transparent), transparent 70%),
+    color-mix(in oklch, var(--background) 60%, black);
+  box-shadow: inset 0 0 60px -30px color-mix(in oklch, var(--violet) 50%, transparent);
+}
+.spotlight-track { display: flex; width: max-content; animation: spotlight-scroll 28s linear infinite; }
+.spotlight-banner:hover .spotlight-track, .spotlight-banner:focus-within .spotlight-track { animation-play-state: paused; }
+@keyframes spotlight-scroll { to { transform: translateX(-50%); } }
+.spotlight-item { display: inline-flex; align-items: center; gap: 0.9rem; padding-inline: 1.6rem; white-space: nowrap; }
+.spotlight-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--electric); box-shadow: 0 0 12px var(--electric); animation: spotlight-pulse 1.6s ease-in-out infinite alternate; }
+@keyframes spotlight-pulse { to { opacity: 0.35; transform: scale(0.75); } }
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .spotlight-dot { animation: none; }
+}
+
+/* Customer-update alert: pulsing yellow until the owner saves the profile. */
+:root { --update-alert: oklch(0.85 0.17 90); }
+.bg-warning\/20 { background-color: color-mix(in oklch, var(--update-alert) 20%, transparent); }
+.update-flash { border-color: var(--update-alert); animation: update-flash 1.2s ease-in-out infinite; }
+@keyframes update-flash {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--update-alert) 0%, transparent); background-color: color-mix(in oklch, var(--update-alert) 6%, transparent); }
+  50% { box-shadow: 0 0 24px 4px color-mix(in oklch, var(--update-alert) 55%, transparent); background-color: color-mix(in oklch, var(--update-alert) 18%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .update-flash { animation: none; background-color: color-mix(in oklch, var(--update-alert) 15%, transparent); } }
+
+@keyframes voice-filled-pulse { 0%,100% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 3px var(--color-primary, currentColor); } }
+.voice-filled { animation: voice-filled-pulse 1.5s ease-out; }
+
+/* Haunted House Mode (owner switch on Team Admin) */
+:root[data-haunted="true"] {
+  --background: oklch(0.1 0.012 150);
+  --card: oklch(0.14 0.015 150);
+  --popover: oklch(0.15 0.015 150);
+  --primary: oklch(0.72 0.2 145);
+  --primary-foreground: oklch(0.12 0.02 150);
+  --electric: oklch(0.82 0.2 140);
+  --violet: oklch(0.55 0.22 25);
+  --violet-soft: oklch(0.7 0.16 40);
+  --accent: oklch(0.22 0.04 150);
+  --border: oklch(0.28 0.03 150);
+  --ring: oklch(0.72 0.2 145);
+  --gradient-brand: linear-gradient(110deg, var(--primary), var(--violet));
+  --shadow-brand: 0 4px 28px color-mix(in oklch, var(--violet) 35%, transparent);
+}
+.haunted-fog { overflow: hidden; mix-blend-mode: screen; }
+.haunted-fog-layer {
+  position: absolute; inset: -20% -50%;
+  background:
+    radial-gradient(40% 25% at 20% 80%, color-mix(in oklch, var(--electric) 14%, transparent), transparent 70%),
+    radial-gradient(35% 20% at 70% 90%, color-mix(in oklch, var(--foreground) 10%, transparent), transparent 70%),
+    radial-gradient(30% 18% at 50% 60%, color-mix(in oklch, var(--violet) 10%, transparent), transparent 70%);
+  animation: haunted-drift 38s linear infinite alternate;
+}
+.haunted-fog-layer--slow { animation-duration: 64s; animation-direction: alternate-reverse; opacity: 0.7; }
+@keyframes haunted-drift { from { transform: translateX(-12%); } to { transform: translateX(12%); } }
+@media (prefers-reduced-motion: reduce) { .haunted-fog-layer { animation: none; } }
+
+/* Haunted decorations */
+@keyframes haunted-swing { 0%,100% { transform: translateY(-20px) rotate(-4deg); } 50% { transform: translateY(18px) rotate(4deg); } }
+@keyframes haunted-fly { 0% { transform: translateX(-15vw) translateY(0); } 25% { transform: translateX(25vw) translateY(-30px); } 50% { transform: translateX(55vw) translateY(20px); } 75% { transform: translateX(85vw) translateY(-15px); } 100% { transform: translateX(115vw) translateY(0); } }
+@keyframes haunted-flap { 0%,100% { scale: 1 1; } 50% { scale: 1 0.45; } }
+@keyframes haunted-blink { 0%,40%,100% { opacity: 0; } 48%,85% { opacity: 0.9; } 88%,90% { opacity: 0; } 92% { opacity: 0.9; } }
+@keyframes haunted-flick { 0%,100% { opacity: 1; } 42% { opacity: .65; } 46% { opacity: 1; } 70% { opacity: .8; } }
+.haunted-spider { transform-origin: top; animation: haunted-swing 6s ease-in-out infinite; }
+.haunted-bat { left: 0; filter: drop-shadow(0 0 6px var(--primary)); animation: haunted-fly 15s linear infinite, haunted-flap .35s ease-in-out infinite; }
+.haunted-eyes { opacity: 0; filter: drop-shadow(0 0 6px currentColor); animation: haunted-blink 7s ease-in-out infinite; }
+.haunted-flicker { animation: haunted-flick 2.2s steps(6) infinite; }
+.haunted-glow { opacity: .85; filter: drop-shadow(0 0 14px var(--violet-soft)); }
+@media (prefers-reduced-motion: reduce) { .haunted-decor * { animation: none !important; } .haunted-eyes { opacity: .8; } }
+
+/* Thanksgiving / Christmas seasonal themes */
+@keyframes season-fall { 0% { transform: translateY(0) rotate(0deg) translateX(0); } 50% { transform: translateY(55vh) rotate(180deg) translateX(30px); } 100% { transform: translateY(115vh) rotate(360deg) translateX(-20px); } }
+.season-fall { opacity: .8; animation: season-fall 16s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .season-fall { animation: none; top: 1rem; } }
+
+@keyframes wave-bounce { 0%, 100% { transform: translateY(0) rotate(0); } 20% { transform: translateY(-5px) rotate(-1deg); } 40% { transform: translateY(0) rotate(1deg); } 60% { transform: translateY(-3px) rotate(-0.5deg); } 80% { transform: translateY(0); } }
+@keyframes hand-wave { 0%, 60%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(14deg); } 20% { transform: rotate(-8deg); } 40% { transform: rotate(-4deg); } 50% { transform: rotate(10deg); } }
+.animate-wave { animation: wave-bounce 2.2s ease-in-out infinite; }
+.animate-hand { animation: hand-wave 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .animate-wave, .animate-hand { animation: none; } }
+
+/* Thanksgiving theme */
+:root {
+  --tg-amber: oklch(0.76 0.16 65);
+  --tg-rust: oklch(0.58 0.16 40);
+  --tg-gold: oklch(0.82 0.14 80);
+  --tg-red: oklch(0.45 0.16 20);
+  --tg-crust: oklch(0.62 0.11 60);
+  --tg-brown: oklch(0.42 0.07 50);
+  --tg-ink: oklch(0.18 0.01 60);
+  --tg-dress: oklch(0.32 0.05 40);
+  --tg-skin: oklch(0.82 0.06 60);
+}
+:root[data-season="thanksgiving"] .gradient-text { background-image: linear-gradient(100deg, #F5B942, #E2711D 55%, #9B1B30); }
+.tg-tag { border: 1px solid color-mix(in oklch, var(--tg-amber) 55%, transparent); background: color-mix(in oklch, var(--background) 45%, transparent); }
+.tg-moon { background: radial-gradient(circle at 40% 40%, color-mix(in oklch, var(--tg-gold) 80%, transparent), color-mix(in oklch, var(--tg-amber) 55%, transparent) 55%, transparent 72%); filter: blur(2px); opacity: .55; }
+.tg-portal-glow { background: radial-gradient(9% 22% at 72% 54%, var(--tg-amber), color-mix(in oklch, var(--tg-amber) 70%, transparent) 50%, transparent 80%); mix-blend-mode: color; opacity: .8; }
+@media (max-width: 767px) { .tg-portal-glow { background: radial-gradient(18% 18% at 80% 62%, var(--tg-amber), color-mix(in oklch, var(--tg-amber) 70%, transparent) 50%, transparent 80%); } }
+.tg-hero-image { filter: sepia(.7) saturate(1.5); }
+.tg-leaf { animation: tg-fall linear infinite; }
+.tg-leaf-glow { filter: drop-shadow(0 0 6px var(--tg-amber)); }
+.tg-sway { animation: tg-sway 3s ease-in-out infinite alternate; }
+.tg-bob { animation: tg-bob 4s ease-in-out infinite; }
+.tg-sway-slow { animation: tg-sway-small 3s ease-in-out infinite alternate; }
+.tg-walk { animation: tg-walk 18s linear infinite; }
+.tg-waddle { animation: tg-waddle .5s ease-in-out infinite alternate; }
+.tg-tail { animation: tg-fan 18s ease-in-out infinite; }
+.tg-wing { animation: tg-flap 18s ease-in-out infinite; }
+.tg-wave-left { animation: tg-wave-l 18s ease-in-out infinite; }
+.tg-wave-right { animation: tg-wave-r 18s ease-in-out infinite; }
+@keyframes tg-fall { from { transform: translateY(0) rotate(0); } to { transform: translateY(115vh) rotate(540deg); } }
+@keyframes tg-sway { from { transform: translateX(-18px) rotate(-15deg); } to { transform: translateX(18px) rotate(15deg); } }
+@keyframes tg-sway-small { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes tg-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes tg-walk { 0% { transform: translateX(-100px); } 42%,52% { transform: translateX(calc(50vw - 40px)); } 100% { transform: translateX(calc(100vw + 100px)); } }
+@keyframes tg-waddle { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+@keyframes tg-fan { 0%,42%,52%,100% { transform: scale(.75); } 45%,49% { transform: scale(1.15); } }
+@keyframes tg-flap { 0%,42%,52%,100% { transform: rotate(0); } 44%,48% { transform: rotate(-40deg); } 46%,50% { transform: rotate(10deg); } }
+/* Arm raised above shoulder & waving sideways; rotates outward only, never behind */
+@keyframes tg-wave-l { 0%,55%,75%,100% { transform: rotate(0); } 58% { transform: rotate(150deg); } 61%,67% { transform: rotate(130deg); } 64%,70% { transform: rotate(165deg); } }
+@keyframes tg-wave-r { 0%,55%,75%,100% { transform: rotate(0); } 58% { transform: rotate(-150deg); } 61%,67% { transform: rotate(-130deg); } 64%,70% { transform: rotate(-165deg); } }
+@media (max-width: 639px) { .tg-walk { animation-duration: 16s; } }
+@media (prefers-reduced-motion: reduce) { .tg-decor * { animation: none !important; } .tg-leaf { transform: translateY(calc(var(--i) * 6vh + 12vh)); } .tg-walk { transform: translateX(20vw); } }
+
+/* Christmas theme */
+:root {
+  --xm-red: #E23B3B; --xm-green: #2ECC71; --xm-gold: #F5C542; --xm-blue: oklch(0.68 0.15 245);
+  --xm-snow: oklch(0.98 0.005 240); --xm-wire: oklch(0.3 0.03 150); --xm-ink: oklch(0.16 0.01 260);
+  --xm-deer: oklch(0.45 0.07 55); --xm-antler: oklch(0.7 0.06 70); --xm-skin: oklch(0.85 0.06 60);
+  --xm-stick: oklch(0.38 0.06 50); --xm-carrot: oklch(0.7 0.18 50); --xm-navy: oklch(0.2 0.05 260);
+}
+:root[data-season="christmas"] .gradient-text { background-image: linear-gradient(100deg, #2ECC71, #F5C542 50%, #E23B3B); }
+.xm-tag { border: 1px solid color-mix(in oklch, var(--xm-gold) 55%, transparent); background: color-mix(in oklch, var(--background) 45%, transparent); }
+.xm-moon { background: radial-gradient(circle at 30% 35%, oklch(0.85 0.005 250) 0 9%, transparent 10%), radial-gradient(circle at 62% 60%, oklch(0.87 0.005 250) 0 12%, transparent 13%), radial-gradient(circle at 60% 28%, oklch(0.88 0.005 250) 0 6%, transparent 7%), var(--xm-snow); box-shadow: 0 0 30px color-mix(in oklch, var(--xm-snow) 45%, transparent); }
+.xm-portal-glow { background: radial-gradient(9% 22% at 72% 54%, oklch(0.95 0.04 220), color-mix(in oklch, oklch(0.85 0.09 220) 70%, transparent) 50%, transparent 80%); mix-blend-mode: color; opacity: .85; }
+@media (max-width: 767px) { .xm-portal-glow { background: radial-gradient(18% 18% at 80% 62%, oklch(0.95 0.04 220), color-mix(in oklch, oklch(0.85 0.09 220) 70%, transparent) 50%, transparent 80%); } }
+.xm-ground { background: linear-gradient(to bottom, var(--xm-snow) 0, color-mix(in oklch, var(--xm-snow) 80%, transparent) 6px, color-mix(in oklch, var(--xm-navy) 75%, transparent) 14px, color-mix(in oklch, var(--xm-navy) 85%, transparent)); }
+.xm-flake { background: var(--xm-snow); opacity: .85; animation: xm-fall linear infinite; box-shadow: 0 0 4px var(--xm-snow); }
+.xm-twinkle { animation: xm-twinkle 2.4s ease-in-out infinite; }
+.xm-swing { animation: xm-swing 4s ease-in-out infinite; transform-origin: 50% 0; }
+.xm-nose { filter: drop-shadow(0 0 4px var(--xm-red)); }
+.xm-fly { animation: xm-fly 18s linear infinite; }
+.xm-bob { animation: tg-bob 1.6s ease-in-out infinite; }
+.xm-sway { animation: tg-sway-small 3s ease-in-out infinite alternate; }
+.xm-wave { animation: xm-wave 18s ease-in-out infinite; }
+@keyframes xm-fall { 0% { transform: translate(0, 0); } 50% { transform: translate(14px, 55vh); } 100% { transform: translate(-6px, 110vh); } }
+@keyframes xm-twinkle { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes xm-swing { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-8px) rotate(6deg); } }
+@keyframes xm-fly { 0% { transform: translateX(-240px); } 60%,100% { transform: translateX(calc(100vw + 40px)); } }
+@keyframes xm-wave { 0%,32%,52%,100% { transform: rotate(0); } 35% { transform: rotate(70deg); } 38%,44% { transform: rotate(55deg); } 41%,47% { transform: rotate(85deg); } 49% { transform: rotate(70deg); } }
+@media (prefers-reduced-motion: reduce) { .xm-decor, .xm-decor * { animation: none !important; } .xm-flake { transform: translateY(calc(var(--i) * 2.5vh + 8vh)); } .xm-fly { transform: translateX(10vw); } }

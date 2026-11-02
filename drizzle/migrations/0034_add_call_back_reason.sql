@@ -1,0 +1,2 @@
+ALTER TABLE public.call_list ADD COLUMN callback_reason text NOT NULL DEFAULT '';
+COMMENT ON COLUMN public.call_list.callback_reason IS 'Why the caller scheduled this call-back; shown on the call-back card and in reminder emails.';
